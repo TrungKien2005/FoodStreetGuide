@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       x:Class="doanC_.Views.QrScannerPage"
+    Title="Qu?t m? QR">
+
+    <Grid>
+        <!-- Camera View - S? t?ch h?p th? vi?n QR Scanner -->
+        <VerticalStackLayout  
+            VerticalOptions="Center"
+     HorizontalOptions="Center"
+    Spacing="20"
+            Padding="30">
+     
+            <Image Source="qr_placeholder.png"
+       WidthRequest="250"
+        HeightRequest="250"
+       Aspect="AspectFit" />
+         
+            <Label Text="?? QU?T M? QR"
+            FontSize="24"
+   FontAttributes="Bold"
+       HorizontalOptions="Center" />
+     
+   <Label Text="H??ng camera v?o m? QR t?i ?i?m tham quan&#10;?? nghe thuy?t minh ngay l?p t?c"
+        FontSize="14"
+               TextColor="Gray"
+     HorizontalOptions="Center"
+              HorizontalTextAlignment="Center"
+ LineBreakMode="WordWrap" />
+
+            <Border Stroke="#FF6B35"
+            StrokeThickness="2"
+         Padding="20"
+BackgroundColor="#FFF5F0"
+      Margin="0,20,0,0">
+  <Border.StrokeShape>
+     <RoundRectangle CornerRadius="10" />
+       </Border.StrokeShape>
+   <VerticalStackLayout Spacing="10">
+   <Label Text="?? L?u ?:"
+   FontSize="16"
+     FontAttributes="Bold" />
+           <Label Text="? ??m b?o ?? ?nh s?ng"
+         FontSize="14" />
+              <Label Text="? Gi? camera ?n ??nh"
+                FontSize="14" />
+        <Label Text="? M? QR n?m trong khung"
+      FontSize="14" />
+     </VerticalStackLayout>
+     </Border>
+
+       <Button Text="B?t ??u qu?t"
+          BackgroundColor="#FF6B35"
+            TextColor="White"
+         Clicked="OnStartScanClicked"
+     WidthRequest="200"
+Margin="0,20,0,0"
+           FontSize="18" />
+
+            <Label Text="Kh?ng c?n GPS, ch? c?n qu?t m?!"
+                 FontSize="12"
+         TextColor="#4ECDC4"
+   FontAttributes="Bold"
+        HorizontalOptions="Center"
+   Margin="0,10,0,0" />
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

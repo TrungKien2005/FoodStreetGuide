@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+ xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+         x:Class="doanC_.Views.SplashPage"
+             BackgroundColor="#FF6B35">
+    
+    <VerticalStackLayout 
+        VerticalOptions="Center"
+        HorizontalOptions="Center"
+        Spacing="20">
+        
+        <Image Source="food_street_logo.png"
+               WidthRequest="200"
+      HeightRequest="200" />
+        
+        <Label Text="PHO AM THUC"
+    FontSize="32"
+               FontAttributes="Bold"
+    TextColor="White"
+       HorizontalOptions="Center" />
+ 
+        <Label Text="FOOD STREET GUIDE"
+     FontSize="18"
+               TextColor="White"
+               HorizontalOptions="Center" />
+        
+        <ActivityIndicator IsRunning="True"
+           Color="White"
+        WidthRequest="50"
+              HeightRequest="50"
+        Margin="0,30,0,0" />
+    </VerticalStackLayout>
+    
+</ContentPage>

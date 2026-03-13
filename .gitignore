@@ -1,0 +1,66 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options directory
+.vs/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Rider
+.idea/
+*.sln.iml
+*.swp
+*.swo
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results (modern .NET)
+artifacts/
+!.github/workflows
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# .NET MAUI specific
+bin/
+obj/
+*.mdf
+*.ldf
+*.db
+*.db-shm
+*.db-wal
+
+# Local environment files
+.env
+.env.local
+appsettings.Development.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+*.vsp
+*.psess

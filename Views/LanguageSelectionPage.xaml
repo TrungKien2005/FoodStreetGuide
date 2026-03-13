@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="doanC_.Views.LanguageSelectionPage"
+    BackgroundColor="#F5EDE4">
+
+    <Grid Padding="30,60,30,30">
+
+        <!-- Row layout -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- LANGUAGE LIST -->
+        <ScrollView Grid.Row="0">
+
+            <VerticalStackLayout Spacing="20">
+
+                <!-- Globe Icon -->
+                <Label
+                    Text="🌐"
+                    FontSize="60"
+                    HorizontalOptions="Center"
+                    Margin="0,20,0,20"/>
+
+                <!-- Title -->
+                <Label
+                    Text="Chọn ngôn ngữ"
+                    FontSize="32"
+                    FontAttributes="Bold"
+                    TextColor="#2C1810"
+                    HorizontalOptions="Center"/>
+
+                <!-- Subtitle -->
+                <Label
+                    Text="Choose your language"
+                    FontSize="16"
+                    TextColor="#9E8B7E"
+                    HorizontalOptions="Center"
+                    Margin="0,0,0,30"/>
+
+                <!-- Vietnamese -->
+                <Frame
+                    x:Name="VietnameseFrame"
+                    Padding="0"
+                    HasShadow="True"
+                    BorderColor="#C85A3F"
+                    BackgroundColor="White"
+                    CornerRadius="15"
+                    Margin="0,5">
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnVietnameseSelected"/>
+                    </Frame.GestureRecognizers>
+
+                    <Grid Padding="20,18">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Label
+                            Grid.Column="0"
+                            Text="VN"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="#2C1810"
+                            VerticalOptions="Center"
+                            Margin="0,0,20,0"/>
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="2"
+                            VerticalOptions="Center">
+
+                            <Label
+                                Text="Tiếng Việt"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="#2C1810"/>
+
+                            <Label
+                                Text="Vietnamese"
+                                FontSize="14"
+                                TextColor="#9E8B7E"/>
+
+                        </VerticalStackLayout>
+
+                        <Label
+                            x:Name="VietnameseCheck"
+                            Grid.Column="2"
+                            Text="✓"
+                            FontSize="24"
+                            TextColor="White"
+                            BackgroundColor="#C85A3F"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center"
+                            VerticalOptions="Center">
+
+                            <Label.Clip>
+                                <EllipseGeometry
+                                    Center="16,16"
+                                    RadiusX="16"
+                                    RadiusY="16"/>
+                            </Label.Clip>
+
+                        </Label>
+
+                    </Grid>
+
+                </Frame>
+
+                <!-- English -->
+                <Frame
+                    x:Name="EnglishFrame"
+                    Padding="0"
+                    HasShadow="False"
+                    BorderColor="#E0D5CC"
+                    BackgroundColor="White"
+                    CornerRadius="15"
+                    Margin="0,5">
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnEnglishSelected"/>
+                    </Frame.GestureRecognizers>
+
+                    <Grid Padding="20,18">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Label
+                            Grid.Column="0"
+                            Text="GB"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="#2C1810"
+                            VerticalOptions="Center"
+                            Margin="0,0,20,0"/>
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="2"
+                            VerticalOptions="Center">
+
+                            <Label
+                                Text="English"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="#2C1810"/>
+
+                            <Label
+                                Text="English"
+                                FontSize="14"
+                                TextColor="#9E8B7E"/>
+
+                        </VerticalStackLayout>
+
+                        <Label
+                            x:Name="EnglishCheck"
+                            Grid.Column="2"
+                            Text="✓"
+                            FontSize="24"
+                            TextColor="White"
+                            BackgroundColor="#C85A3F"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center"
+                            VerticalOptions="Center"
+                            IsVisible="False">
+
+                            <Label.Clip>
+                                <EllipseGeometry
+                                    Center="16,16"
+                                    RadiusX="16"
+                                    RadiusY="16"/>
+                            </Label.Clip>
+
+                        </Label>
+
+                    </Grid>
+
+                </Frame>
+
+                <!-- Chinese -->
+                <Frame
+                    x:Name="ChineseFrame"
+                    Padding="0"
+                    HasShadow="False"
+                    BorderColor="#E0D5CC"
+                    BackgroundColor="White"
+                    CornerRadius="15"
+                    Margin="0,5">
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnChineseSelected"/>
+                    </Frame.GestureRecognizers>
+
+                    <Grid Padding="20,18">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Label
+                            Grid.Column="0"
+                            Text="CN"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="#2C1810"
+                            VerticalOptions="Center"
+                            Margin="0,0,20,0"/>
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="2"
+                            VerticalOptions="Center">
+
+                            <Label
+                                Text="中文"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="#2C1810"/>
+
+                            <Label
+                                Text="Chinese"
+                                FontSize="14"
+                                TextColor="#9E8B7E"/>
+
+                        </VerticalStackLayout>
+
+                        <Label
+                            x:Name="ChineseCheck"
+                            Grid.Column="2"
+                            Text="✓"
+                            FontSize="24"
+                            TextColor="White"
+                            BackgroundColor="#C85A3F"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center"
+                            VerticalOptions="Center"
+                            IsVisible="False">
+
+                            <Label.Clip>
+                                <EllipseGeometry
+                                    Center="16,16"
+                                    RadiusX="16"
+                                    RadiusY="16"/>
+                            </Label.Clip>
+
+                        </Label>
+
+                    </Grid>
+
+                </Frame>
+
+            </VerticalStackLayout>
+
+        </ScrollView>
+
+        <!-- CONTINUE BUTTON -->
+        <Button
+            Grid.Row="1"
+            Text="Tiếp tục →"
+            FontSize="18"
+            FontAttributes="Bold"
+            TextColor="White"
+            BackgroundColor="#C85A3F"
+            CornerRadius="15"
+            HeightRequest="60"
+            Margin="0,20,0,0"
+            Clicked="OnContinueClicked"/>
+
+    </Grid>
+
+</ContentPage>

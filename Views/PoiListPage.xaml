@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+   xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+      x:Class="doanC_.Views.PoiListPage"
+          Title="Điểm Thuyết Minh"
+             BackgroundColor="#2C1810">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+  
+      <!-- Header Section -->
+  <VerticalStackLayout Grid.Row="0" Padding="20,20,20,15" Spacing="10" BackgroundColor="#2C1810">
+            
+            <!-- Title -->
+       
+ <!-- Subtitle -->
+        <Label Text="Khám phá các địa điểm có thuyết minh"
+      FontSize="14"
+       TextColor="#9E8B7E"/>
+     
+      <!-- Category Filter Chips -->
+    <ScrollView Orientation="Horizontal">
+     <HorizontalStackLayout Spacing="10" Padding="0">
+         <Frame Padding="12,6" CornerRadius="20" HasShadow="False" 
+  BackgroundColor="#C85A3F" BorderColor="Transparent">
+     <Label Text="Tất cả" FontSize="12" TextColor="White" FontAttributes="Bold"/>
+      </Frame>
+         
+             <Frame Padding="12,6" CornerRadius="20" HasShadow="False" 
+       BackgroundColor="#E0D5CC" BorderColor="Transparent">
+    <Label Text="Quán ăn" FontSize="12" TextColor="#2C1810"/>
+               </Frame>
+        <Frame Padding="12,6" CornerRadius="20" HasShadow="False" 
+      BackgroundColor="#E0D5CC" BorderColor="Transparent">
+          <Label Text="Địa điểm" FontSize="12" TextColor="#2C1810"/>
+     </Frame>
+              <Frame Padding="12,6" CornerRadius="20" HasShadow="False" 
+            BackgroundColor="#E0D5CC" BorderColor="Transparent">
+     <Label Text="Lịch sử" FontSize="12" TextColor="#2C1810"/>
+        </Frame>
+</HorizontalStackLayout>
+        </ScrollView>
+
+         <!-- Search Bar -->
+  <Frame Padding="0" CornerRadius="12" HasShadow="False" 
+      BackgroundColor="White" BorderColor="Transparent">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Padding="15,12">
+          <Entry Placeholder="Tìm kiếm..."
+            x:Name="SearchEntry"
+             Grid.Column="0"
+          TextChanged="OnSearchTextChanged"
+            BackgroundColor="Transparent"
+      TextColor="#2C1810"
+                 PlaceholderColor="#C0B5A8"/>
+        <Label Grid.Column="1" Text="🔍" FontSize="18" VerticalOptions="Center"/>
+         </Grid>
+            </Frame>
+
+        </VerticalStackLayout>
+
+        <!-- POI List -->
+     <CollectionView Grid.Row="1"  
+    x:Name="PoiCollection"
+      SelectionMode="Single"
+    SelectionChanged="OnPoiSelected">
+         
+            <CollectionView.ItemTemplate>
+                <DataTemplate>  
+              <Frame Padding="0"    
+                                 
+     CornerRadius="20" 
+             HasShadow="True"
+   BorderColor="Transparent"
+       BackgroundColor="White"
+  Margin="0,8">
+                  
+
+      
+       <Grid RowDefinitions="Auto,Auto" RowSpacing="0">
+        
+    <!-- Header with Image and Category Badge -->
+ <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Padding="15,15,15,10" ColumnSpacing="12">
+ 
+             <!-- Image -->
+    <Frame Grid.Column="0" 
+      Padding="0" 
+      CornerRadius="12" 
+ HasShadow="False"
+        WidthRequest="60"
+     HeightRequest="60"
+               BorderColor="Transparent">
+  <Image Source="{Binding ImageUrl}"
+   Aspect="AspectFill"/>
+           </Frame>
+
+       <!-- Title and Description -->
+     <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+              <Label Text="{Binding Name}"
+  FontSize="16"
+ FontAttributes="Bold"
+       TextColor="#2C1810"/>
+         <Label Text="{Binding Description}"
+       FontSize="12"
+          TextColor="#9E8B7E"
+         LineBreakMode="TailTruncation"
+       MaxLines="1"/>
+  </VerticalStackLayout>
+
+    <!-- Play Button -->
+            <Frame Grid.Column="2"
+            Padding="0"
+                CornerRadius="20"
+      WidthRequest="40"
+         HeightRequest="40"
+          HasShadow="False"
+  BackgroundColor="#FFE8E0"
+          BorderColor="Transparent"
+           VerticalOptions="Center">
+      <Label Text="▶" 
+             FontSize="16" 
+                 TextColor="#C85A3F"
+          HorizontalOptions="Center"
+        VerticalOptions="Center"/>
+    </Frame>
+
+          </Grid>
+
+    <!-- Footer with Distance and Icons -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" 
+     Padding="15,10,15,15" ColumnSpacing="10">
+           
+      <!-- Distance Badge -->
+            <Frame Grid.Column="0"
+        Padding="8,4"
+           CornerRadius="8"
+       HasShadow="False"
+       BackgroundColor="#FFF0E8"
+            BorderColor="#FFE0CC">
+       <Label Text="{Binding Distance, StringFormat='{0}m'}"
+      FontSize="11"
+       TextColor="#C85A3F"
+    FontAttributes="Bold"/>
+             </Frame>
+
+   <!-- Spacer -->
+         <BoxView Grid.Column="1" Color="Transparent"/>
+
+ <!-- Rating Icon -->
+
+              <!-- Audio Icon -->
+         <Label Grid.Column="3" Text="🎧" FontSize="16"/>
+
+       <!-- More Icon -->
+
+     </Grid>
+
+          </Grid>
+
+        </Frame>
+   </DataTemplate>
+    </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    <!-- Bottom Navigation Spacer -->
+        <BoxView Grid.Row="2" HeightRequest="20" Color="Transparent"/>
+
+    </Grid>
+
+</ContentPage>
