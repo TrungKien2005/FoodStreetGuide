@@ -1,122 +1,100 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-          xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="doanC_.Views.MapPage"
-      Title="Bản đồ">
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
+             x:Class="doanC_.Views.MapPage">
 
-		<Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="*,Auto">
 
-			<!-- BẢN ĐỒ -->
-			<AbsoluteLayout BackgroundColor="#E8E8E8">
+        <!-- BẢN ĐỒ -->
+        <AbsoluteLayout Grid.Row="0">
 
-				<!-- Map background -->
-				<BoxView BackgroundColor="#D3D3D3"
-						 AbsoluteLayout.LayoutBounds="0,0,1,1"
-						 AbsoluteLayout.LayoutFlags="All"/>
+            <!-- MAP -->
+            <mapsui:MapControl x:Name="map"
+                               AbsoluteLayout.LayoutBounds="0,0,1,1"
+                               AbsoluteLayout.LayoutFlags="All"/>
 
-				<!-- Thanh tìm kiếm -->
-				<Frame BackgroundColor="White"
-					   CornerRadius="20"
-					   Padding="10"
-					   Margin="20,20,20,0"
-					   AbsoluteLayout.LayoutBounds="0.5,0.08,0.9,60"
-					   AbsoluteLayout.LayoutFlags="PositionProportional,WidthProportional"
-					   HasShadow="True">
+            <!-- Thanh tìm kiếm -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 20"
+                    Padding="10"
+                    Margin="20,20,20,0"
+                    AbsoluteLayout.LayoutBounds="0.5,0.08,0.9,60"
+                    AbsoluteLayout.LayoutFlags="PositionProportional,WidthProportional">
 
-					<Grid ColumnDefinitions="Auto,*,Auto" RowSpacing="0">
+                <Grid ColumnDefinitions="Auto,*,Auto">
 
-						<Label Text="🔍"
-							   FontSize="18"
-							   VerticalOptions="Center"/>
+                    <Label Text="🔍"
+                           FontSize="18"
+                           VerticalOptions="Center"/>
 
-						<Entry Placeholder="Tìm điểm thuyết minh..."
-							   Grid.Column="1"
-							   FontSize="14"
-							   VerticalOptions="Center"
-							   Margin="10,0,0,0"/>
+                    <Entry Placeholder="Tìm điểm thuyết minh..."
+                           Grid.Column="1"
+                           FontSize="14"
+                           VerticalOptions="Center"
+                           Margin="10,0,0,0"/>
 
-						<Frame Grid.Column="2"
-							   BackgroundColor="#EEE"
-							   CornerRadius="15"
-							   Padding="10,5"
-							   HasShadow="False">
-							<Label Text="VI"
-								   FontSize="10"
-								   VerticalOptions="Center"/>
-						</Frame>
+                    <Border Grid.Column="2"
+                            BackgroundColor="#EEE"
+                            StrokeShape="RoundRectangle 15"
+                            Padding="10,5">
 
-					</Grid>
+                        <Label Text="VI"
+                               FontSize="10"
+                               VerticalOptions="Center"/>
 
-				</Frame>
+                    </Border>
 
-				<!-- Marker -->
-				<Image Source="pin_red.png"
-					   WidthRequest="35"
-					   HeightRequest="35"
-					   AbsoluteLayout.LayoutBounds="0.25,0.4,35,35"
-					   AbsoluteLayout.LayoutFlags="PositionProportional"/>
+                </Grid>
 
-				<Image Source="pin_red.png"
-					   WidthRequest="35"
-					   HeightRequest="35"
-					   AbsoluteLayout.LayoutBounds="0.7,0.3,35,35"
-					   AbsoluteLayout.LayoutFlags="PositionProportional"/>
+            </Border>
 
-				<Image Source="pin_yellow.png"
-					   WidthRequest="35"
-					   HeightRequest="35"
-					   AbsoluteLayout.LayoutBounds="0.6,0.65,35,35"
-					   AbsoluteLayout.LayoutFlags="PositionProportional"/>
+            <!-- Nút GPS -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 30"
+                    HeightRequest="45"
+                    WidthRequest="45"
+                    AbsoluteLayout.LayoutBounds="0.95,0.85,45,45"
+                    AbsoluteLayout.LayoutFlags="PositionProportional">
 
-				<!-- Vị trí hiện tại -->
-				<Frame BackgroundColor="White"
-					   CornerRadius="30"
-					   HeightRequest="40"
-					   WidthRequest="40"
-					   Padding="0"
-					   AbsoluteLayout.LayoutBounds="0.5,0.6,40,40"
-					   AbsoluteLayout.LayoutFlags="PositionProportional"
-					   HasShadow="True">
+                <Label Text="📍"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       FontSize="20"/>
 
-					<BoxView Color="#4A90E2"
-							 CornerRadius="20"/>
-				</Frame>
+            </Border>
 
-			</AbsoluteLayout>
+        </AbsoluteLayout>
 
-			<!-- THẺ THÔNG TIN -->
-			<Frame Grid.Row="1"
-				   BackgroundColor="White"
-				   
-				   Padding="20"
-				  
-				   HasShadow="True">
+        <!-- THẺ THÔNG TIN -->
+        <Border Grid.Row="1"
+                BackgroundColor="White"
+                Padding="20">
 
-				<VerticalStackLayout Spacing="10">
+            <VerticalStackLayout Spacing="10">
 
-					<Label Text="📍 Đang gần · 45m"
-						   TextColor="Red"
-						   FontSize="12"/>
+                <Label Text="📍 Đang gần · 45m"
+                       TextColor="Red"
+                       FontSize="12"/>
 
-					<Label Text="Bánh Mì Huynh Hoa"
-						   FontSize="18"
-						   FontAttributes="Bold"/>
+                <Label Text="Bánh Mì Huynh Hoa"
+                       FontSize="18"
+                       FontAttributes="Bold"/>
 
-					<Label Text="🔊 Nhấn để nghe thuyết minh"
-						   FontSize="13"
-						   TextColor="Gray"/>
+                <Label Text="🔊 Nhấn để nghe thuyết minh"
+                       FontSize="13"
+                       TextColor="Gray"/>
 
-					<Button Text="▶ Phát thuyết minh"
-							BackgroundColor="#E85C2B"
-							TextColor="White"
-							CornerRadius="12"
-							HeightRequest="45"/>
+                <Button Text="▶ Phát thuyết minh"
+                        BackgroundColor="#E85C2B"
+                        TextColor="White"
+                        CornerRadius="12"
+                        HeightRequest="45"/>
 
-				</VerticalStackLayout>
+            </VerticalStackLayout>
 
-			</Frame>
+        </Border>
 
-		</Grid>
+    </Grid>
 
-	
 </ContentPage>
