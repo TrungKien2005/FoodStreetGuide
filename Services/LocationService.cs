@@ -11,7 +11,7 @@ public class LocationService
             var request = new GeolocationRequest(
                 GeolocationAccuracy.High,
                 TimeSpan.FromSeconds(10));
-
+            // gọi api để lấy vị trí
             return await Geolocation.Default.GetLocationAsync(request);
         }
         catch

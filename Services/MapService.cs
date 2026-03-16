@@ -30,7 +30,8 @@ public class MapService
         var point = new MPoint(spherical.x, spherical.y);
 
         map.Map.Navigator.CenterOn(point);
-        map.Map.Navigator.ZoomTo(15000);
+        // ZoomToLevel: 8-10 để nhìn được cả thành phố và các địa điểm xung quanh
+        map.Map.Navigator.ZoomToLevel(9);
     }
 
     public void ShowUserLocation(MapControl map, double latitude, double longitude)
