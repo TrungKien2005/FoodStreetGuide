@@ -1,119 +1,85 @@
-﻿using Mapsui;
-using Mapsui.Projections;
-using Mapsui.UI.Maui;
-using Mapsui.Tiling;
-using Mapsui.Layers;
-using Mapsui.Features;
-using Mapsui.Styles;
-using doanC_.Models;
+﻿using doanC_.Models;
+using Microsoft.Maui.Controls.Maps;
+using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Maps;
 
-// tránh xung đột MAUI
-using MapsuiBrush = Mapsui.Styles.Brush;
-using MapsuiColor = Mapsui.Styles.Color;
+// alias để tránh conflict
+using MapControl = Microsoft.Maui.Controls.Maps.Map;
 
 namespace doanC_.Services;
 
 public class MapService
 {
-    private MemoryLayer? userLayer;
-    private MemoryLayer? poiLayer;
-
-    public void InitializeMap(MapControl map)
-    {
-        map.Map = new Mapsui.Map();
-        map.Map.Layers.Add(OpenStreetMap.CreateTileLayer());
-    }
-
+    // Focus bản đồ
     public void FocusToLocation(MapControl map, double latitude, double longitude)
     {
-        var spherical = SphericalMercator.FromLonLat(longitude, latitude);
-        var point = new MPoint(spherical.x, spherical.y);
+        var location = new Location(latitude, longitude);
 
-        map.Map.Navigator.CenterOn(point);
-        // ZoomToLevel: 8-10 để nhìn được cả thành phố và các địa điểm xung quanh
-        map.Map.Navigator.ZoomToLevel(9);
+        map.MoveToRegion(
+            MapSpan.FromCenterAndRadius(
+                location,
+                Distance.FromMeters(500)));
     }
 
+    // Hiển thị vị trí user
     public void ShowUserLocation(MapControl map, double latitude, double longitude)
     {
-        var spherical = SphericalMercator.FromLonLat(longitude, latitude);
+        var location = new Location(latitude, longitude);
 
-        var feature = new PointFeature(new MPoint(spherical.x, spherical.y));
-
-        feature.Styles.Add(new SymbolStyle
+        var pin = new Pin
         {
-            Fill = new MapsuiBrush(MapsuiColor.Blue),
-            SymbolScale = 1
-        });
-
-        userLayer = new MemoryLayer
-        {
-            Name = "UserLocation",
-            Features = new List<IFeature> { feature }
+            Label = "Bạn đang ở đây",
+            Location = location,
+            Type = PinType.SavedPin
         };
 
-        map.Map.Layers.Add(userLayer);
-
-        map.Refresh();
+        map.Pins.Add(pin);
     }
+
+    // Cập nhật vị trí user
+    private Pin? userPin;
 
     public void UpdateUserLocation(MapControl map, double latitude, double longitude)
     {
-        if (userLayer == null) return;
+        var location = new Location(latitude, longitude);
 
-        var spherical = SphericalMercator.FromLonLat(longitude, latitude);
-
-        var feature = new PointFeature(new MPoint(spherical.x, spherical.y));
-
-        feature.Styles.Add(new SymbolStyle
+        if (userPin == null)
         {
-            Fill = new MapsuiBrush(MapsuiColor.Blue),
-            SymbolScale = 1
-        });
+            userPin = new Pin
+            {
+                Label = "Bạn đang ở đây",
+                Location = location,
+                Type = PinType.SavedPin
+            };
 
-        userLayer.Features = new List<IFeature> { feature };
-
-        map.Refresh();
+            map.Pins.Add(userPin);
+        }
+        else
+        {
+            userPin.Location = location;
+        }
     }
 
+    // Hiển thị POI
     public void AddLocationPoints(MapControl map, List<LocationPoint> points)
     {
-        var features = new List<IFeature>();
-
         foreach (var p in points)
         {
-            var spherical = SphericalMercator.FromLonLat(p.Longitude, p.Latitude);
-
-            var feature = new PointFeature(new MPoint(spherical.x, spherical.y));
-
-            feature.Styles.Add(new SymbolStyle
+            var pin = new Pin
             {
-                Fill = new MapsuiBrush(MapsuiColor.Red),
-                SymbolScale = 0.8
-            });
+                Label = p.Name,
+                Address = p.Description,
+                Location = new Location(p.Latitude, p.Longitude),
+                Type = PinType.Place
+            };
 
-            features.Add(feature);
+            map.Pins.Add(pin);
         }
-
-        poiLayer = new MemoryLayer
-        {
-            Name = "POI",
-            Features = features
-        };
-
-        map.Map.Layers.Add(poiLayer);
-
-        map.Refresh();
     }
 
+    // Xóa POI
     public void ClearPOI(MapControl map)
     {
-        if (poiLayer != null)
-        {
-            map.Map.Layers.Remove(poiLayer);
-            poiLayer = null;
-
-            map.Refresh();
-        }
+        map.Pins.Clear();
     }
 }

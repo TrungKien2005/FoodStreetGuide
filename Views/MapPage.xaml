@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
+             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
              x:Class="doanC_.Views.MapPage">
 
     <Grid RowDefinitions="*,Auto">
@@ -9,10 +9,11 @@
         <!-- BẢN ĐỒ -->
         <AbsoluteLayout Grid.Row="0">
 
-            <!-- MAP -->
-            <mapsui:MapControl x:Name="map"
-                               AbsoluteLayout.LayoutBounds="0,0,1,1"
-                               AbsoluteLayout.LayoutFlags="All"/>
+            <!-- ✅ GOOGLE MAP -->
+            <maps:Map x:Name="map"
+                      IsShowingUser="True"
+                      AbsoluteLayout.LayoutBounds="0,0,1,1"
+                      AbsoluteLayout.LayoutFlags="All"/>
 
             <!-- Thanh tìm kiếm -->
             <Border BackgroundColor="White"
@@ -77,7 +78,7 @@
                        TextColor="Red"
                        FontSize="12"/>
 
-                <Label Text="Bánh Mì Huynh Hoa"
+                <Label Text="Bánh Mì Huỳnh Hoa"
                        FontSize="18"
                        FontAttributes="Bold"/>
 

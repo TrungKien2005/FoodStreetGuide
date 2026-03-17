@@ -11,6 +11,7 @@ namespace doanC_
 
             builder
                 .UseMauiApp<App>()
+                .UseMauiMaps()
                 .UseSkiaSharp()
                 .ConfigureFonts(fonts =>
                 {
