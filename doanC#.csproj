@@ -62,11 +62,26 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Maui.Controls.Maps" Version="9.0.0" />
+		<!-- MAUI version mới -->
+		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.40" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.40" />
+		<PackageReference Include="Microsoft.Maui.Controls.Maps" Version="9.0.40" />
+
+		<!-- QR -->
+
+		<!-- Fix AndroidX conflict -->
+		<PackageReference Include="Xamarin.AndroidX.Collection" Version="1.5.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Collection.Jvm" Version="1.5.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.5.0.1" />
+		
+		<!-- Logging Debug -->
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+		
+		<!-- SkiaSharpg -->
 		<PackageReference Include="SkiaSharp" Version="3.119.2" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" />
+		<PackageReference Include="ZXing.Net.Maui" Version="0.6.0" />
+		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.6.0" />
 	</ItemGroup>
 
 	<ItemGroup>

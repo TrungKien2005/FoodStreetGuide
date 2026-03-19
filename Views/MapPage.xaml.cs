@@ -11,13 +11,11 @@ public partial class MapPage : ContentPage
     private LocationService locationService = new();
     private LocationPointService pointService = new();
 
-    private Pin? userPin;
-    private bool isFirst = true;
+    private Location? lastLocation;
 
     public MapPage()
     {
         InitializeComponent();
-
         Loaded += async (s, e) => await LoadMap();
     }
 
@@ -30,51 +28,51 @@ public partial class MapPage : ContentPage
             if (status != PermissionStatus.Granted)
                 status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
 
-            Location center = new Location(10.7726, 106.6980); // fallback
-
             if (status == PermissionStatus.Granted)
             {
-                // 🚀 Bắt đầu tracking liên tục
+                // ✅ FIX: đặt vị trí mặc định (Việt Nam) trước
+                var defaultLocation = new Location(10.7726, 106.6980); // TP.HCM
+
+                map.MoveToRegion(
+                    MapSpan.FromCenterAndRadius(
+                        defaultLocation,
+                        Distance.FromMeters(200)));
+
+                // 🚀 Sau đó mới tracking GPS
                 await locationService.StartTrackingAsync(location =>
                 {
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    MainThread.BeginInvokeOnMainThread(async () =>
                     {
                         var current = new Location(location.Latitude, location.Longitude);
 
-                        // 📍 Tạo hoặc update pin user
-                        if (userPin == null)
+                        // 🧠 Nếu đã có vị trí trước đó → kiểm tra khoảng cách
+                        if (lastLocation != null &&
+                            Location.CalculateDistance(lastLocation, current, DistanceUnits.Kilometers) * 1000 < 10)
                         {
-                            userPin = new Pin
-                            {
-                                Label = "Bạn đang ở đây",
-                                Location = current
-                            };
-
-                            map.Pins.Add(userPin);
+                            return;
                         }
+
+                        lastLocation = current;
+
+                        // 🎯 Zoom thông minh
+                        double zoom = 100;
+
+                        if (location.Speed.HasValue && location.Speed > 5)
+                            zoom = 200;
                         else
-                        {
-                            userPin.Location = current;
-                        }
+                            zoom = 80;
 
-                        // 🎯 Focus chỉ lần đầu
-                        if (isFirst)
-                        {
-                            map.MoveToRegion(
-                                MapSpan.FromCenterAndRadius(
-                                    current,
-                                    Distance.FromMeters(500)));
+                        await Task.Delay(30);
 
-                            isFirst = false;
-                        }
+                        map.MoveToRegion(
+                            MapSpan.FromCenterAndRadius(
+                                current,
+                                Distance.FromMeters(zoom)));
                     });
-
-                    // 👉 Nếu có GeoFence thì gọi ở đây
-                    // geoFenceService.CheckLocation(location);
                 });
             }
 
-            // 📌 Add POI (chỉ 1 lần)
+            // 📌 Add POI
             var pois = pointService.GetLocations();
 
             foreach (var p in pois)
@@ -96,8 +94,6 @@ public partial class MapPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-
-        // ⛔ Dừng GPS khi rời màn hình
         locationService.StopTracking();
     }
 }
