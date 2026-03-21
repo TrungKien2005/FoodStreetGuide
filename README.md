@@ -216,3 +216,91 @@ Mình có thể:
 * Hoặc check code MAUI của bạn
 
 Chỉ cần gửi code bạn đang bị lỗi 👍
+________________________________________
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Đồ án MAUI - File System</title>
+<style>
+    body {
+        background: #1e1e1e;
+        color: #e0e0e0;
+        font-family: Consolas, monospace;
+        padding: 20px;
+    }
+    h1 {
+        color: #4fc3f7;
+    }
+    .folder { color: #ffd54f; }
+    .file { color: #81c784; }
+    .desc { color: #b0bec5; margin-left: 20px; }
+</style>
+</head>
+<body>
+
+<h1>📁 Cấu trúc hệ thống đồ án</h1>
+
+<pre>
+<span class="folder">doanC/</span>
+├── <span class="folder">Models/</span>
+│   └── <span class="file">LocationPoint.cs</span>
+│       <span class="desc">→ Lưu thông tin địa điểm (tọa độ, audio)</span>
+
+├── <span class="folder">Services/</span>
+│   ├── <span class="folder">Geo/</span>
+│   │   └── <span class="file">GeoFenceService.cs</span>
+│   │       <span class="desc">→ Xử lý geofence + debounce + cooldown</span>
+│
+│   ├── <span class="folder">Audio/</span>
+│   │   ├── <span class="file">TTSService.cs</span>
+│   │   │   <span class="desc">→ Đọc text bằng TTS</span>
+│   │   └── <span class="file">AudioService.cs</span>
+│   │       <span class="desc">→ Phát file MP3</span>
+│
+│   ├── <span class="folder">QR/</span>
+│   │   └── <span class="file">QrService.cs</span>
+│   │       <span class="desc">→ Xử lý dữ liệu QR</span>
+│
+│   └── <span class="folder">Data/</span>
+│       └── <span class="file">SQLiteService.cs</span>
+│           <span class="desc">→ Lưu dữ liệu offline</span>
+
+├── <span class="folder">Views/</span>
+│   ├── <span class="folder">Map/</span>
+│   │   └── <span class="file">MapPage.xaml</span>
+│   │
+│   ├── <span class="folder">QR/</span>
+│   │   └── <span class="file">QrScannerPage.xaml</span>
+│   │
+│   └── <span class="folder">Home/</span>
+│       └── <span class="file">MainPage.xaml</span>
+
+├── <span class="folder">Resources/</span>
+│   └── <span class="folder">Raw/audio/</span>
+│       └── <span class="file">truong.mp3</span>
+
+</pre>
+
+<h1>📊 Đánh giá theo yêu cầu</h1>
+
+<ul>
+<li>✔ GPS Tracking (Background)</li>
+<li>✔ Geofencing (Haversine + Trigger)</li>
+<li>✔ QR Code Scan</li>
+<li>✔ Text-to-Speech</li>
+<li>✔ Audio MP3 Playback</li>
+<li>✔ SQLite Offline Storage</li>
+<li>✔ Map hiển thị vị trí</li>
+</ul>
+
+<h2>🔥 Điểm nâng cao</h2>
+<ul>
+<li>✔ Debounce 3s</li>
+<li>✔ Cooldown 5 phút</li>
+<li>✔ Heartbeat log</li>
+<li>✔ Kết hợp QR → Map → Geo → Audio</li>
+</ul>
+
+</body>
+</html>
