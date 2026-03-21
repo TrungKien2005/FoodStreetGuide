@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Text.Json;
 using doanC_.Models;
+using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Media;
+using doanC_.Services.LocationTracking;
 
-namespace doanC_.Services
+namespace doanC_.Services.Geo
 {
     public class GeoFenceService
     {
@@ -122,6 +124,5 @@ namespace doanC_.Services
         {
             await TextToSpeech.SpeakAsync(text);
         }
-        private GeoFenceService _geoFenceService = new GeoFenceService();
     }
 }

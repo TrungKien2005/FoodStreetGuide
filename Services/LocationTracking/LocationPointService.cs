@@ -1,6 +1,6 @@
 ﻿using doanC_.Models;
 
-namespace doanC_.Services;
+namespace doanC_.Services.LocationTracking;
 
 public class LocationPointService
 {

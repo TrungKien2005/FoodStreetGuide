@@ -2,6 +2,7 @@
 using doanC_.Models;
 using doanC_.Services;
 using ZXing.Net.Maui;
+using doanC_.Services.Geo;
 
 namespace doanC_.Views;
 
