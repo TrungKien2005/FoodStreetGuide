@@ -5,14 +5,20 @@ using Microsoft.Extensions.FileProviders;
 using doanC_Admin.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
-var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
-builder.WebHost.UseUrls($"http://*:{port}");
 
 // ============================================
-// 1. CẤU HÌNH SERVICES (TRƯỚC KHI BUILD)
+// ✅ PORT CHO RENDER
 // ============================================
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-// Add services
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(int.Parse(port));
+});
+
+// ============================================
+// 1. SERVICES
+// ============================================
 builder.Services.AddRazorPages();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -25,10 +31,8 @@ builder.Services.AddSession(options =>
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-// ✅ THÊM IHttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-// CORS - Cho phép MAUI app gọi API
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -40,25 +44,13 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Database Context
 builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// ============================================
-// 2. CẤU HÌNH KESTREL (PORT & IP)
-// ============================================
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    // Listen on all IP addresses, port 5225
-    serverOptions.Listen(IPAddress.Any, 5225);
-    serverOptions.Listen(IPAddress.Loopback, 5225);
-    serverOptions.Listen(IPAddress.IPv6Any, 5225);
-});
 
 var app = builder.Build();
 
 // ============================================
-// 3. CẤU HÌNH PIPELINE (SAU KHI BUILD)
+// 2. PIPELINE
 // ============================================
 
 if (!app.Environment.IsDevelopment())
@@ -67,29 +59,45 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// ❌ KHÔNG dùng HTTPS redirect trên Render
+// app.UseHttpsRedirection();
 
-// 👉 PHỤC VỤ FILE TĨNH (wwwroot)
 app.UseStaticFiles();
 
-// 👉 PHỤC VỤ ẢNH TỪ THƯ MỤC IMAGES CỦA MAUI APP (ĐƯỜNG DẪN TƯƠNG ĐỐI)
-var currentDirectory = Directory.GetCurrentDirectory(); // .../doanC_Admin
-var solutionDirectory = Directory.GetParent(currentDirectory)?.FullName ?? currentDirectory; // .../FoodStreetGuide_Solution
-var mauiImagesPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "Images");
-var qrImagesPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "FoodStreetGuide", "Resources", "qr");
+// ============================================
+// ✅ XỬ LÝ PATH 2 CHẾ ĐỘ (LOCAL + RENDER)
+// ============================================
 
-// Tạo thư mục nếu chưa tồn tại
-if (!Directory.Exists(mauiImagesPath))
+var currentDirectory = Directory.GetCurrentDirectory();
+
+string mauiImagesPath;
+string qrImagesPath;
+
+// 👉 Nếu chạy LOCAL (có folder FoodStreetGuide)
+if (Directory.Exists(Path.Combine(currentDirectory, "FoodStreetGuide")))
 {
-    Directory.CreateDirectory(mauiImagesPath);
-    Console.WriteLine($"📁 Created images directory: {mauiImagesPath}");
+    var solutionDirectory = Directory.GetParent(currentDirectory)?.FullName ?? currentDirectory;
+
+    mauiImagesPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "Images");
+    qrImagesPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "qr");
+}
+else
+{
+    // 👉 Nếu chạy trên Render
+    mauiImagesPath = Path.Combine(currentDirectory, "wwwroot", "images");
+    qrImagesPath = Path.Combine(currentDirectory, "wwwroot", "qr");
 }
 
-if (!Directory.Exists(qrImagesPath))
+// Tạo folder nếu chưa có
+Directory.CreateDirectory(mauiImagesPath);
+Directory.CreateDirectory(qrImagesPath);
+
+// Serve images
+app.UseStaticFiles(new StaticFileOptions
 {
-    Directory.CreateDirectory(qrImagesPath);
-    Console.WriteLine($"📁 Created QR directory: {qrImagesPath}");
-}
+    FileProvider = new PhysicalFileProvider(mauiImagesPath),
+    RequestPath = "/images"
+});
 
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -97,43 +105,29 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/qr"
 });
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(mauiImagesPath),
-    RequestPath = "/images"
-});
+// ============================================
+// ROUTING
+// ============================================
 
 app.UseRouting();
 app.UseSession();
 app.UseCors("AllowAll");
 app.UseAuthorization();
-app.MapHub<DashboardHub>("/dashboardHub");
 
-// ✅ THÊM SIGNALR ENDPOINT
+app.MapHub<DashboardHub>("/dashboardHub");
 app.MapRazorPages();
 app.MapControllers();
 
 // ============================================
-// 4. HIỂN THỊ THÔNG TIN KHỞI ĐỘNG
+// RUN
 // ============================================
-
-var localIP = GetLocalIPAddress();
-port = Environment.GetEnvironmentVariable("PORT") ?? "5225";
-
-var urls = new[]
-{
-    $"http://0.0.0.0:{port}"
-};
 
 app.Run();
 
 // ============================================
-// 5. HÀM TIỆN ÍCH
+// HELPER
 // ============================================
 
-/// <summary>
-/// Lấy địa chỉ IP cục bộ của máy tính
-/// </summary>
 static string GetLocalIPAddress()
 {
     try
