@@ -1,0 +1,190 @@
+﻿@page
+@model OwnerDashboardModel
+@{
+    ViewData["Title"] = "Dashboard | Chủ quán";
+    Layout = "_Layout";
+}
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+        .stat-icon.orange-bg {
+            background: #FFF3E0;
+            color: #FF5722;
+        }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .warning-card {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+    }
+
+    .poi-limit {
+        font-size: 0.8rem;
+        color: #856404;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Welcome -->
+    <div class="welcome-card mb-4">
+        <h4><i class="fas fa-store me-2"></i>Xin chào, @Model.OwnerName!</h4>
+        <p class="mb-0">Chào mừng bạn đến với hệ thống quản lý địa điểm FoodStreetGuide</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-value">@Model.MyLocationsCount / @Model.MaxPOILimit</div>
+                <div class="stat-label">Địa điểm của bạn</div>
+                @if (Model.MyLocationsCount >= Model.MaxPOILimit)
+                {
+                    <div class="warning-card p-2 mt-2">
+                        <i class="fas fa-exclamation-triangle"></i> Bạn đã đạt giới hạn @Model.MaxPOILimit địa điểm
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <div class="stat-value">@Model.TotalScans.ToString("N0")</div>
+                <div class="stat-label">Tổng lượt quét QR</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-headphones"></i>
+                </div>
+                <div class="stat-value">@Model.TotalListens.ToString("N0")</div>
+                <div class="stat-label">Tổng lượt nghe Audio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle"></i> Quản lý địa điểm
+                </div>
+                <div class="card-body">
+                    @if (Model.MyLocationsCount < Model.MaxPOILimit)
+                    {
+                        <a href="/Owner/CreateLocation" class="btn btn-gradient w-100 mb-2">
+                            <i class="fas fa-plus me-2"></i>Thêm địa điểm mới
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary w-100 mb-2" disabled>
+                            <i class="fas fa-ban me-2"></i>Đã đạt giới hạn (@Model.MaxPOILimit/địa điểm)
+                        </button>
+                    }
+                    <a href="/Owner/MyLocations" class="btn btn-outline-gradient w-100">
+                        <i class="fas fa-list me-2"></i>Xem danh sách địa điểm của tôi
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar"></i> Thống kê
+                </div>
+                <div class="card-body">
+                    <canvas id="myLocationsChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách địa điểm -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-store"></i> Địa điểm của bạn
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr><th>ID</th><th>Tên địa điểm</th><th>Trạng thái</th><th>Lượt quét</th><th>Lượt nghe</th><th>Thao tác</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var loc in Model.MyLocations)
+                                {
+                                    <tr>
+                                        <td>@loc.PointId</td>
+                                        <td>@loc.Name</td>
+                                        <td>@if (loc.IsApproved) {
+                                        <span class="badge bg-success">Đã duyệt</span>
+                                    } else
+                                    {
+
+                                        <span class="badge bg-warning">Chờ duyệt</span>
+                                    }
+</td>
+                                    <td>@loc.TotalScans</td>
+                                    <td>@loc.TotalListens</td>
+                                    <td>
+                                        <a href="/Owner/EditLocation?id=@loc.PointId" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                        <a href="/Owner/DeleteLocation?id=@loc.PointId" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                                                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        new Chart(document.getElementById('myLocationsChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Đã duyệt', 'Chờ duyệt'],
+                datasets: [{
+                    data: [@Model.ApprovedCount, @Model.PendingCount],
+                    backgroundColor: ['#28a745', '#ffc107']
+                }]
+            }
+        });
+    </script>
+}

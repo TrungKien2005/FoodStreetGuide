@@ -1,0 +1,571 @@
+﻿@page
+@model doanC_Admin.Pages.Shared.Reports.IndexModel
+@{
+    ViewData["Title"] = "Thông báo & Task";
+}
+
+<style>
+    :root {
+        --primary-orange: #FF5722;
+        --primary-orange-light: #FF8A65;
+        --primary-orange-soft: #FFF3E0;
+        --gray-bg: #F8F9FA;
+        --card-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        --border-radius: 16px;
+    }
+
+    .noti-container {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+    }
+
+    .noti-header {
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Thống kê nhanh */
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+
+    /* Notification Item */
+    .notification-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid #ecf0f1;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+        .notification-item:hover {
+            background: var(--primary-orange-soft);
+        }
+
+        .notification-item.unread {
+            background: #f0f9ff;
+        }
+
+    .notification-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+        .notification-icon.orange {
+            background: var(--primary-orange-soft);
+            color: var(--primary-orange);
+        }
+
+        .notification-icon.blue {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .notification-icon.green {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .notification-icon.red {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .notification-icon.purple {
+            background: #f3e5f5;
+            color: #9c27b0;
+        }
+
+    .notification-content {
+        flex: 1;
+    }
+
+    .notification-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+
+    .notification-desc {
+        font-size: 0.75rem;
+        color: #7f8c8d;
+        margin-bottom: 0.25rem;
+    }
+
+    .notification-time {
+        font-size: 0.65rem;
+        color: #95a5a6;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .badge-new {
+        background: #f44336;
+        color: white;
+        padding: 0.15rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.6rem;
+        font-weight: 500;
+    }
+
+    /* Task Card */
+    .task-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--card-shadow);
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+        .task-card:hover {
+            transform: translateX(5px);
+            border-left: 3px solid var(--primary-orange);
+        }
+
+        .task-card.completed {
+            opacity: 0.6;
+        }
+
+    .task-checkbox {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        accent-color: var(--primary-orange);
+    }
+
+    .task-title {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #2c3e50;
+    }
+
+    .task-deadline {
+        font-size: 0.65rem;
+        color: #e74c3c;
+    }
+
+        .task-deadline.done {
+            color: #27ae60;
+        }
+
+    /* Quick Actions */
+    .quick-action {
+        background: var(--primary-orange-soft);
+        border-radius: 12px;
+        padding: 0.75rem;
+        text-align: center;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+        .quick-action:hover {
+            background: var(--primary-orange);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .quick-action i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+    /* Tabs */
+    .noti-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 0.5rem;
+    }
+
+    .noti-tab {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.8rem;
+    }
+
+        .noti-tab:hover {
+            background: var(--primary-orange-soft);
+        }
+
+        .noti-tab.active {
+            background: var(--primary-orange);
+            color: white;
+        }
+
+    .btn-mark-read {
+        background: none;
+        border: none;
+        color: var(--primary-orange);
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
+
+        .btn-mark-read:hover {
+            text-decoration: underline;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title">
+            <i class="fas fa-bell me-2" style="color: #FF5722;"></i>Thông báo & Task
+        </h2>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" id="markAllReadBtn">
+                <i class="fas fa-check-double me-1"></i>Đánh dấu đã đọc
+            </button>
+            <button class="btn btn-sm btn-outline-danger" id="clearAllBtn">
+                <i class="fas fa-trash me-1"></i>Xóa tất cả
+            </button>
+        </div>
+    </div>
+
+    <!-- Thống kê nhanh -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-bell fa-2x" style="color: #FF5722;"></i>
+                <h3 class="mt-2 mb-0" id="totalNoti">0</h3>
+                <small class="text-muted">Tổng thông báo</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-envelope fa-2x" style="color: #2196f3;"></i>
+                <h3 class="mt-2 mb-0" id="unreadCount">0</h3>
+                <small class="text-muted">Chưa đọc</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-tasks fa-2x" style="color: #4caf50;"></i>
+                <h3 class="mt-2 mb-0" id="totalTasks">0</h3>
+                <small class="text-muted">Task đang chờ</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-check-circle fa-2x" style="color: #27ae60;"></i>
+                <h3 class="mt-2 mb-0" id="completedTasks">0</h3>
+                <small class="text-muted">Hoàn thành</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Cột trái: Thông báo -->
+        <div class="col-lg-7">
+            <div class="noti-container">
+                <div class="noti-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5><i class="fas fa-bell me-2 text-warning"></i>Thông báo hệ thống</h5>
+                        <small class="text-muted">Các hoạt động và cập nhật mới nhất</small>
+                    </div>
+                </div>
+
+                <div class="noti-tabs">
+                    <div class="noti-tab active" data-tab="all">Tất cả</div>
+                    <div class="noti-tab" data-tab="unread">Chưa đọc</div>
+                    <div class="noti-tab" data-tab="system">Hệ thống</div>
+                    <div class="noti-tab" data-tab="user">Người dùng</div>
+                </div>
+
+                <div id="notificationsList">
+                    <!-- Notifications sẽ được load bằng JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Task & Quick Actions -->
+        <div class="col-lg-5">
+            <!-- Task mới -->
+            <div class="noti-container">
+                <div class="noti-header">
+                    <h5><i class="fas fa-tasks me-2 text-success"></i>Task mới cần xử lý</h5>
+                    <small class="text-muted">Các công việc cần hoàn thành</small>
+                </div>
+
+                <div id="tasksList">
+                    <!-- Tasks sẽ được load bằng JS -->
+                </div>
+
+                <div class="mt-3">
+                    <div class="input-group">
+                        <input type="text" id="newTaskInput" class="form-control" placeholder="Thêm task mới...">
+                        <button class="btn btn-gradient" id="addTaskBtn">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="noti-container">
+                <div class="noti-header">
+                    <h5><i class="fas fa-bolt me-2 text-warning"></i>Thao tác nhanh</h5>
+                    <small class="text-muted">Truy cập nhanh các tính năng</small>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="quick-action" onclick="location.href='/LocationPoints/Create'">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>Thêm địa điểm</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="quick-action" onclick="location.href='/Audios'">
+                            <i class="fas fa-headphones"></i>
+                            <div>Thêm Audio</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="quick-action" onclick="location.href='/QRCodes'">
+                            <i class="fas fa-qrcode"></i>
+                            <div>Tạo QR Code</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="quick-action" onclick="location.href='/Dashboard'">
+                            <i class="fas fa-chart-line"></i>
+                            <div>Xem Dashboard</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dữ liệu mẫu - Thực tế sẽ lấy từ API
+    let notifications = [
+        { id: 1, title: "Địa điểm mới được thêm", desc: "Ốc Oanh đã được thêm vào hệ thống", time: "5 phút trước", type: "system", read: false, icon: "fa-map-marker-alt", iconColor: "orange" },
+        { id: 2, title: "Audio mới được tải lên", desc: "File audio cho địa điểm Ốc Vũ đã được thêm", time: "30 phút trước", type: "system", read: false, icon: "fa-headphones", iconColor: "blue" },
+        { id: 3, title: "QR Code được tạo", desc: "Mã QR cho địa điểm Bitexco Tower đã được tạo", time: "2 giờ trước", type: "system", read: true, icon: "fa-qrcode", iconColor: "green" },
+        { id: 4, title: "Người dùng mới đăng ký", desc: "Tài khoản admin đã đăng nhập hệ thống", time: "1 ngày trước", type: "user", read: true, icon: "fa-user-plus", iconColor: "purple" },
+        { id: 5, title: "Cập nhật hệ thống", desc: "Phiên bản mới đã được cập nhật thành công", time: "2 ngày trước", type: "system", read: true, icon: "fa-cloud-upload-alt", iconColor: "blue" }
+    ];
+
+    let tasks = [
+        { id: 1, title: "Thêm ảnh cho địa điểm Ốc Oanh", deadline: "2024-01-15", completed: false },
+        { id: 2, title: "Kiểm tra file audio cho Chợ Bến Thành", deadline: "2024-01-14", completed: false },
+        { id: 3, title: "Cập nhật thông tin giờ mở cửa", deadline: "2024-01-13", completed: false },
+        { id: 4, title: "Tạo QR Code cho tất cả địa điểm", deadline: "2024-01-12", completed: true }
+    ];
+
+    let currentTab = "all";
+
+    // Render notifications
+    function renderNotifications() {
+        let filtered = notifications;
+
+        if (currentTab === "unread") {
+            filtered = notifications.filter(n => !n.read);
+        } else if (currentTab === "system") {
+            filtered = notifications.filter(n => n.type === "system");
+        } else if (currentTab === "user") {
+            filtered = notifications.filter(n => n.type === "user");
+        }
+
+        const container = document.getElementById('notificationsList');
+        const totalNoti = notifications.length;
+        const unreadCount = notifications.filter(n => !n.read).length;
+
+        document.getElementById('totalNoti').innerText = totalNoti;
+        document.getElementById('unreadCount').innerText = unreadCount;
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>Không có thông báo nào</p>
+                    <small>Hãy kiểm tra lại sau</small>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map(noti => `
+            <div class="notification-item ${!noti.read ? 'unread' : ''}" data-id="${noti.id}">
+                <div class="notification-icon ${noti.iconColor}">
+                    <i class="fas ${noti.icon}"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">
+                        ${noti.title}
+                        ${!noti.read ? '<span class="badge-new ms-2">Mới</span>' : ''}
+                    </div>
+                    <div class="notification-desc">${noti.desc}</div>
+                    <div class="notification-time">
+                        <i class="far fa-clock"></i> ${noti.time}
+                        ${!noti.read ? `<button class="btn-mark-read" onclick="markAsRead(${noti.id})">Đánh dấu đã đọc</button>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Render tasks
+    function renderTasks() {
+        const container = document.getElementById('tasksList');
+        const pendingTasks = tasks.filter(t => !t.completed).length;
+        const completedTasks = tasks.filter(t => t.completed).length;
+
+        document.getElementById('totalTasks').innerText = pendingTasks;
+        document.getElementById('completedTasks').innerText = completedTasks;
+
+        if (tasks.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Không có task nào</p>
+                    <small>Thêm task mới bên dưới</small>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = tasks.map(task => `
+            <div class="task-card ${task.completed ? 'completed' : ''}" data-id="${task.id}">
+                <div class="d-flex align-items-center gap-3">
+                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                    <div class="flex-grow-1">
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-deadline ${task.completed ? 'done' : ''}">
+                            <i class="fas fa-calendar-alt me-1"></i>Hạn: ${formatDate(task.deadline)}
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Mark as read
+    function markAsRead(id) {
+        const index = notifications.findIndex(n => n.id === id);
+        if (index !== -1) {
+            notifications[index].read = true;
+            renderNotifications();
+        }
+    }
+
+    // Toggle task
+    function toggleTask(id) {
+        const index = tasks.findIndex(t => t.id === id);
+        if (index !== -1) {
+            tasks[index].completed = !tasks[index].completed;
+            renderTasks();
+        }
+    }
+
+    // Delete task
+    function deleteTask(id) {
+        tasks = tasks.filter(t => t.id !== id);
+        renderTasks();
+    }
+
+    // Add task
+    document.getElementById('addTaskBtn')?.addEventListener('click', function() {
+        const input = document.getElementById('newTaskInput');
+        const title = input.value.trim();
+        if (title) {
+            const newId = Math.max(...tasks.map(t => t.id), 0) + 1;
+            tasks.push({
+                id: newId,
+                title: title,
+                deadline: new Date().toISOString().split('T')[0],
+                completed: false
+            });
+            input.value = '';
+            renderTasks();
+        }
+    });
+
+    // Format date
+    function formatDate(dateStr) {
+        if (!dateStr) return 'Không có hạn';
+        const date = new Date(dateStr);
+        return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    }
+
+    // Tab switching
+    document.querySelectorAll('.noti-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.noti-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentTab = this.getAttribute('data-tab');
+            renderNotifications();
+        });
+    });
+
+    // Mark all as read
+    document.getElementById('markAllReadBtn')?.addEventListener('click', function() {
+        notifications.forEach(n => n.read = true);
+        renderNotifications();
+    });
+
+    // Clear all notifications
+    document.getElementById('clearAllBtn')?.addEventListener('click', function() {
+        if (confirm('Bạn có chắc chắn muốn xóa tất cả thông báo?')) {
+            notifications = [];
+            renderNotifications();
+        }
+    });
+
+    // Enter key to add task
+    document.getElementById('newTaskInput')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('addTaskBtn').click();
+        }
+    });
+
+    // Initial render
+    renderNotifications();
+    renderTasks();
+</script>

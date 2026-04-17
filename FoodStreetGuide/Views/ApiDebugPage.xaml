@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="doanC_.Views.ApiDebugPage"
+             Title="API Debug"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="15" Spacing="15">
+
+            <Frame BackgroundColor="#2196F3" CornerRadius="10" Padding="15">
+                <VerticalStackLayout>
+                    <Label Text="🔧 API Debug Tool" TextColor="White" FontSize="18" FontAttributes="Bold"/>
+                    <Label Text="Kiểm tra dữ liệu từ SQL Server" TextColor="White" Opacity="0.9" FontSize="12"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="White" CornerRadius="10" Padding="15" HasShadow="True">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="📡 Cấu hình API" FontAttributes="Bold" FontSize="14"/>
+                    <Label x:Name="ConfigInfoLabel" Text="Đang tải..." FontSize="12" TextColor="#666"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button x:Name="TestApiBtn" Text="📡 Gọi API" BackgroundColor="#4CAF50" TextColor="White" CornerRadius="8" Clicked="OnTestApiClicked"/>
+                <Button x:Name="ClearCacheBtn" Grid.Column="1" Text="🗑️ Xóa Cache" BackgroundColor="#FF5722" TextColor="White" CornerRadius="8" Clicked="OnClearCacheClicked"/>
+            </Grid>
+
+            <Button x:Name="TestConnectionBtn" Text="🔌 Test Connection" BackgroundColor="#2196F3" TextColor="White" CornerRadius="8" Clicked="OnTestConnectionClicked"/>
+
+            <Frame BackgroundColor="#E3F2FD" CornerRadius="10" Padding="12">
+                <VerticalStackLayout>
+                    <Label Text="📊 Trạng thái" FontAttributes="Bold" FontSize="13"/>
+                    <Label x:Name="StatusLabel" Text="Chưa gọi API" FontSize="12"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#263238" CornerRadius="10" Padding="15">
+                <VerticalStackLayout>
+                    <Label Text="📄 Kết quả" TextColor="White" FontAttributes="Bold" FontSize="13"/>
+                    <ScrollView HeightRequest="400">
+                        <Label x:Name="ResultLabel" Text="Nhấn 'Gọi API' để bắt đầu..." TextColor="#CCCCCC" FontSize="11" FontFamily="CourierNew"/>
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

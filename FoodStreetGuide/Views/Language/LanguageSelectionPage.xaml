@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="doanC_.Views.Language.LanguageSelectionPage"
+             Title="Chọn ngôn ngữ">
+
+    <VerticalStackLayout Padding="30" Spacing="15" VerticalOptions="Center">
+        <Label Text="Chọn ngôn ngữ / Choose language"
+               FontSize="18"
+               HorizontalOptions="Center" />
+
+        <Button Text="Tiếng Việt"
+                FontSize="16"
+                Clicked="OnSelectVietnamese" />
+
+        <Button Text="English"
+                FontSize="16"
+                Clicked="OnSelectEnglish" />
+
+        <Button Text="中文 (Chinese)"
+                FontSize="16"
+                Clicked="OnSelectChinese" />
+
+        <Button Text="Français (French)"
+                FontSize="16"
+                Clicked="OnSelectFrench" />
+
+        <Button Text="Español (Spanish)"
+                FontSize="16"
+                Clicked="OnSelectSpanish" />
+
+        <Button Text="日本語 (Japanese)"
+                FontSize="16"
+                Clicked="OnSelectJapanese" />
+
+        <Button Text="한국어 (Korean)"
+                FontSize="16"
+                Clicked="OnSelectKorean" />
+    </VerticalStackLayout>
+</ContentPage>

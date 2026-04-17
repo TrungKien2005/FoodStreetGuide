@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "FoodStreetGuide\\doanC#.csproj",
+        "Action": "Start",
+        "DebugTarget": "Samsung SM-A920F (Android 9.0 - API 28)"
+      },
+      {
+        "Path": "doanC_Admin\\doanC_Admin.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  }
+]

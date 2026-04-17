@@ -1,0 +1,229 @@
+﻿@page
+@model doanC_Admin.Pages.LocationPoints.CreateModel
+@{
+    ViewData["Title"] = "Thêm địa điểm mới";
+}
+
+<style>
+    .form-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 0.6rem 1rem;
+        transition: all 0.3s;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #FF5722;
+            box-shadow: 0 0 0 3px rgba(255,87,34,0.1);
+        }
+
+    .btn-save {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        border: none;
+        padding: 0.6rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+        }
+
+    .btn-cancel {
+        background: #6c757d;
+        border: none;
+        padding: 0.6rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    .geocode-btn {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        color: #FF5722;
+        border-radius: 8px;
+        padding: 0.3rem 1rem;
+        font-size: 0.8rem;
+    }
+
+        .geocode-btn:hover {
+            background: #FFF3E0;
+            border-color: #FF5722;
+        }
+
+    .image-preview {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="page-title">📝 Thêm địa điểm mới</h2>
+                <a href="/LocationPoints" class="btn btn-outline-gradient">
+                    <i class="fas fa-arrow-left me-2"></i>Quay lại
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <form method="post" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.Name" class="form-label">Tên địa điểm <span class="text-danger">*</span></label>
+                    <input asp-for="LocationPoint.Name" class="form-control" placeholder="Nhập tên địa điểm" />
+                    <span asp-validation-for="LocationPoint.Name" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.Category" class="form-label">Danh mục</label>
+                    <select asp-for="LocationPoint.Category" class="form-select" asp-items="Model.Categories">
+                        <option value="">-- Chọn danh mục --</option>
+                    </select>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label asp-for="LocationPoint.Description" class="form-label">Mô tả</label>
+                    <textarea asp-for="LocationPoint.Description" class="form-control" rows="3" placeholder="Nhập mô tả chi tiết về địa điểm..."></textarea>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.Address" class="form-label">Địa chỉ</label>
+                    <div class="input-group">
+                        <input asp-for="LocationPoint.Address" class="form-control" id="addressInput" placeholder="Nhập địa chỉ" />
+                        <button type="button" id="geocodeBtn" class="geocode-btn">
+                            <i class="fas fa-map-pin"></i> Lấy tọa độ
+                        </button>
+                    </div>
+                    <small class="text-muted">Nhập địa chỉ, sau đó nhấn nút để lấy tọa độ tự động</small>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label asp-for="LocationPoint.Latitude" class="form-label">Vĩ độ (Latitude)</label>
+                    <input asp-for="LocationPoint.Latitude" class="form-control" step="any" placeholder="VD: 10.8231" />
+                    <small class="text-muted">Để trống nếu chưa có</small>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label asp-for="LocationPoint.Longitude" class="form-label">Kinh độ (Longitude)</label>
+                    <input asp-for="LocationPoint.Longitude" class="form-control" step="any" placeholder="VD: 106.6297" />
+                    <small class="text-muted">Để trống nếu chưa có</small>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label asp-for="LocationPoint.Rating" class="form-label">Đánh giá (⭐)</label>
+                    <input asp-for="LocationPoint.Rating" class="form-control" step="0.1" min="0" max="5" placeholder="0 - 5" />
+                    <small class="text-muted">Để trống nếu chưa có đánh giá</small>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label asp-for="LocationPoint.ReviewCount" class="form-label">Số lượng đánh giá</label>
+                    <input asp-for="LocationPoint.ReviewCount" class="form-control" type="number" placeholder="0" />
+                    <small class="text-muted">Để trống nếu chưa có</small>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label asp-for="LocationPoint.PriceRange" class="form-label">Khoảng giá</label>
+                    <input asp-for="LocationPoint.PriceRange" class="form-control" placeholder="VD: 50.000 - 200.000 VNĐ" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.OpeningHours" class="form-label">Giờ mở cửa</label>
+                    <input asp-for="LocationPoint.OpeningHours" class="form-control" placeholder="VD: 08:00 - 22:00" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Hình ảnh</label>
+                    <input type="file" name="ImageFile" class="form-control" accept="image/*" id="imageInput" />
+                    <small class="text-muted">Chọn file ảnh (jpg, png, jpeg)</small>
+                    <img id="imagePreview" class="image-preview" style="display: none;" />
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="d-flex justify-content-end gap-3">
+                <a asp-page="./Index" class="btn btn-cancel">
+                    <i class="fas fa-times me-2"></i>Hủy bỏ
+                </a>
+                <button type="submit" class="btn btn-save">
+                    <i class="fas fa-save me-2"></i>Lưu địa điểm
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Preview image
+        document.getElementById('imageInput')?.addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    preview.src = ev.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Geocoding
+        document.getElementById('geocodeBtn')?.addEventListener('click', async function() {
+            const address = document.getElementById('addressInput').value;
+            if (!address) {
+                alert('Vui lòng nhập địa chỉ trước');
+                return;
+            }
+
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lấy...';
+            this.disabled = true;
+
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`);
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    document.querySelector('#LocationPoint_Latitude').value = lat;
+                    document.querySelector('#LocationPoint_Longitude').value = lon;
+                    alert(`✅ Đã lấy tọa độ thành công!\nVĩ độ: ${lat}\nKinh độ: ${lon}`);
+                } else {
+                    alert('❌ Không tìm thấy tọa độ cho địa chỉ này');
+                }
+            } catch (error) {
+                alert('❌ Lỗi khi lấy tọa độ');
+            } finally {
+                this.innerHTML = '<i class="fas fa-map-pin"></i> Lấy tọa độ';
+                this.disabled = false;
+            }
+        });
+    </script>
+}

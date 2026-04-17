@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+   xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+        xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.Maui.Controls"
+         x:Class="doanC_.Views.QrScannerPage">
+
+    <Grid>
+
+      <!-- 🔥 CAMERA FULL BACKGROUND -->
+        <zxing:CameraBarcodeReaderView
+            x:Name="cameraView"
+      BarcodesDetected="OnBarcodeDetected"
+  HorizontalOptions="Fill"
+            VerticalOptions="Fill" />
+
+      <!-- 🔥 OVERLAY UI -->
+ <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- TIÊU ĐỀ -->
+   <VerticalStackLayout
+            Padding="20,50,20,10"
+             HorizontalOptions="Center">
+
+    <Label Text="{Binding QrScannerTitle}"
+            FontSize="22"
+     TextColor="#F5CBA7"
+   FontAttributes="Bold"
+      HorizontalOptions="Center"/>
+
+       <Label Text="{Binding QrScannerSubtitle}"
+            FontSize="13"
+      TextColor="#D5B8A6"
+      HorizontalOptions="Center"/>
+  </VerticalStackLayout>
+
+ <!-- KHUNG QUÉT -->
+            <Grid Grid.Row="1"
+         HorizontalOptions="Center"
+        VerticalOptions="Center">
+
+                <!-- Khung -->
+        <Frame HeightRequest="220"
+  WidthRequest="220"
+          CornerRadius="20"
+     BackgroundColor="#22000000"
+       BorderColor="#F5CBA7"
+       HasShadow="False"/>
+
+         <!-- Góc quét -->
+  <BoxView Color="#F5CBA7" HeightRequest="2" WidthRequest="30" HorizontalOptions="Start" VerticalOptions="Start"/>
+       <BoxView Color="#F5CBA7" HeightRequest="30" WidthRequest="2" HorizontalOptions="Start" VerticalOptions="Start"/>
+
+    <BoxView Color="#F5CBA7" HeightRequest="2" WidthRequest="30" HorizontalOptions="End" VerticalOptions="Start"/>
+    <BoxView Color="#F5CBA7" HeightRequest="30" WidthRequest="2" HorizontalOptions="End" VerticalOptions="Start"/>
+
+             <BoxView Color="#F5CBA7" HeightRequest="2" WidthRequest="30" HorizontalOptions="Start" VerticalOptions="End"/>
+                <BoxView Color="#F5CBA7" HeightRequest="30" WidthRequest="2" HorizontalOptions="Start" VerticalOptions="End"/>
+
+     <BoxView Color="#F5CBA7" HeightRequest="2" WidthRequest="30" HorizontalOptions="End" VerticalOptions="End"/>
+       <BoxView Color="#F5CBA7" HeightRequest="30" WidthRequest="2" HorizontalOptions="End" VerticalOptions="End"/>
+      </Grid>
+
+     <!-- MÔ TẢ -->
+       <VerticalStackLayout
+        Grid.Row="2"
+         Padding="20"
+        Spacing="10">
+
+      <Frame BackgroundColor="#2B1B16"
+           CornerRadius="15"
+           Padding="15">
+
+          <Label Text="{Binding QrInstructions}"
+ TextColor="#D5B8A6"
+    FontSize="13"
+         HorizontalTextAlignment="Center"/>
+      </Frame>
+
+     
+     </VerticalStackLayout>
+
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

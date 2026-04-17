@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="doanC_.Views.SimpleTestPage"
+             Title="Test Dữ Liệu">
+
+    <VerticalStackLayout Padding="20" Spacing="15">
+        <Button Text="📡 Tải dữ liệu từ API" 
+                Clicked="OnLoadDataClicked"
+                BackgroundColor="#4CAF50"
+                TextColor="White"/>
+
+        <Button Text="🗑️ Xóa cache" 
+                Clicked="OnClearCacheClicked"
+                BackgroundColor="#FF5722"
+                TextColor="White"/>
+
+        <Label Text="Kết quả:" FontAttributes="Bold"/>
+        <ScrollView HeightRequest="500">
+            <Label x:Name="ResultLabel" Text="Chưa có dữ liệu"/>
+        </ScrollView>
+    </VerticalStackLayout>
+</ContentPage>

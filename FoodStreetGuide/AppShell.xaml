@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="doanC_.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:doanC_"
+    xmlns:views="clr-namespace:doanC_.Views"
+    xmlns:language="clr-namespace:doanC_.Views.Language"
+    Title="Food Street Guide"
+    TabBarBackgroundColor="White"
+    TabBarForegroundColor="#C8A882"
+    TabBarUnselectedColor="#9E8B7E"
+    TabBarTitleColor="#C8A882">
+
+    <Shell.Resources>
+        <ResourceDictionary>
+            <FontImageSource x:Key="MapIcon" FontFamily="FontAwesome" Glyph="&#xf279;" Color="#C8A882"/>
+            <FontImageSource x:Key="PoiIcon" FontFamily="FontAwesome" Glyph="&#xf041;" Color="#C8A882"/>
+            <FontImageSource x:Key="QrIcon" FontFamily="FontAwesome" Glyph="&#xf029;" Color="#C8A882"/>
+            <FontImageSource x:Key="SettingsIcon" FontFamily="FontAwesome" Glyph="&#xf013;" Color="#C8A882"/>
+            <FontImageSource x:Key="DebugIcon" FontFamily="FontAwesome" Glyph="&#xf188;" Color="#FF5722"/>
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <TabBar>
+        <!-- Bản đồ - Sửa: Bỏ binding, dùng text trực tiếp -->
+        <ShellContent
+            Title="Bản đồ"
+            Icon="{StaticResource MapIcon}"
+            ContentTemplate="{DataTemplate views:MapPage}"
+            Route="MapPage" />
+
+        <!-- Điểm - Sửa: Bỏ binding, dùng text trực tiếp -->
+        <ShellContent
+            Title="Địa điểm"
+            Icon="{StaticResource PoiIcon}"
+            ContentTemplate="{DataTemplate views:PoiListPage}"
+            Route="PoiListPage" />
+
+        <!-- QR - Sửa: Bỏ binding, dùng text trực tiếp -->
+        <ShellContent
+            Title="QR Code"
+            Icon="{StaticResource QrIcon}"
+            ContentTemplate="{DataTemplate views:QrScannerPage}"
+            Route="QrScannerPage" />
+
+        <!-- Cài đặt - Sửa: Bỏ binding, dùng text trực tiếp -->
+        <ShellContent
+            Title="Cài đặt"
+            Icon="{StaticResource SettingsIcon}"
+            ContentTemplate="{DataTemplate views:SettingsPage}"
+            Route="SettingsPage" />
+
+        <!-- API Debug - Thêm tab debug -->
+         <ShellContent
+            Title="API Debug"
+            Icon="{StaticResource DebugIcon}"
+            ContentTemplate="{DataTemplate views:ApiDebugPage}"
+            Route="ApiDebugPage" />
+        <ShellContent
+            Title="Test"
+            Icon="{StaticResource DebugIcon}"
+            ContentTemplate="{DataTemplate views:SimpleTestPage}"
+            Route="SimpleTestPage" /> 
+    </TabBar>
+
+    <!-- Chi tiết POI - NGOÀI TabBar -->
+    <ShellContent 
+        Title="Chi tiết"
+        ContentTemplate="{DataTemplate views:PoiDetailPage}"
+        Route="PoiDetailPage" />
+
+</Shell>

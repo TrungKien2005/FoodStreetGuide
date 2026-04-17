@@ -1,0 +1,139 @@
+﻿@page
+@model doanC_Admin.Pages.Owner.CreateLocationModel
+@{
+    ViewData["Title"] = "Thêm địa điểm mới";
+    Layout = "_Layout";
+}
+
+<style>
+    .form-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 0.6rem 1rem;
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        border: none;
+        padding: 0.6rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        color: white;
+    }
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="page-title">
+                    <i class="fas fa-plus-circle me-2" style="color: #FF5722;"></i>
+                    Thêm địa điểm mới
+                </h2>
+                <a href="/Owner/Dashboard" class="btn btn-outline-gradient">
+                    <i class="fas fa-arrow-left me-2"></i>Quay lại
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <p class="text-muted mb-4">
+            <i class="fas fa-info-circle me-1"></i>
+            Bạn có thể thêm tối đa <strong>2 địa điểm</strong>. Địa điểm sẽ được admin kiểm duyệt.
+        </p>
+
+        @if (Model.RemainingSlots <= 0)
+        {
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Bạn đã đạt giới hạn <strong>@Model.MaxPOILimit</strong> địa điểm. Không thể thêm mới.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Bạn còn <strong>@Model.RemainingSlots</strong> slot để thêm địa điểm.
+            </div>
+        }
+
+        <form method="post" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.Name" class="form-label">Tên địa điểm <span class="text-danger">*</span></label>
+                    <input asp-for="LocationPoint.Name" class="form-control" required />
+                    <span asp-validation-for="LocationPoint.Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.Category" class="form-label">Danh mục</label>
+                    <select asp-for="LocationPoint.Category" class="form-select" asp-items="Model.Categories">
+                        <option value="">-- Chọn danh mục --</option>
+                    </select>
+                </div>
+                <div class="col-12 mb-3">
+                    <label asp-for="LocationPoint.Description" class="form-label">Mô tả</label>
+                    <textarea asp-for="LocationPoint.Description" class="form-control" rows="3" placeholder="Nhập mô tả chi tiết về địa điểm..."></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LocationPoint.Address" class="form-label">Địa chỉ</label>
+                    <input asp-for="LocationPoint.Address" class="form-control" placeholder="Nhập địa chỉ đầy đủ" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="LocationPoint.Latitude" class="form-label">Vĩ độ (Latitude)</label>
+                    <input asp-for="LocationPoint.Latitude" class="form-control" step="any" placeholder="VD: 10.8231" />
+                    <small class="text-muted">Có thể để trống</small>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="LocationPoint.Longitude" class="form-label">Kinh độ (Longitude)</label>
+                    <input asp-for="LocationPoint.Longitude" class="form-control" step="any" placeholder="VD: 106.6297" />
+                    <small class="text-muted">Có thể để trống</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="LocationPoint.OpeningHours" class="form-label">Giờ mở cửa</label>
+                    <input asp-for="LocationPoint.OpeningHours" class="form-control" placeholder="VD: 08:00 - 22:00" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="LocationPoint.PriceRange" class="form-label">Khoảng giá</label>
+                    <input asp-for="LocationPoint.PriceRange" class="form-control" placeholder="VD: 50.000 - 200.000 VNĐ" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Hình ảnh</label>
+                    <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+                    <small class="text-muted">Chọn file ảnh (jpg, png, jpeg)</small>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="d-flex justify-content-end gap-3">
+                <a href="/Owner/Dashboard" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Hủy bỏ
+                </a>
+                <button type="submit" class="btn btn-save" @(Model.RemainingSlots <= 0 ? "disabled" : "")>
+                    <i class="fas fa-save me-2"></i>Gửi duyệt
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

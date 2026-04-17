@@ -1,0 +1,429 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Quản lý Audio";
+}
+
+<style>
+    .audio-container {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+    }
+
+    .audio-header {
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .table-audio {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table-audio thead th {
+        background: #1a1a2e;
+        color: white;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .table-audio thead th:first-child { border-radius: 12px 0 0 0; }
+    .table-audio thead th:last-child { border-radius: 0 12px 0 0; }
+
+    .table-audio tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #ecf0f1;
+    }
+
+    .table-audio tbody tr:hover {
+        background: #FFF3E0;
+    }
+
+    .audio-player {
+        width: 200px;
+        height: 35px;
+        border-radius: 8px;
+    }
+
+    .audio-player::-webkit-media-controls-panel {
+        background: #f8f9fa;
+    }
+
+    .badge-language {
+        background: #FFF3E0;
+        color: #FF5722;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .btn-upload {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        color: white;
+        transition: all 0.2s;
+    }
+
+    .btn-upload:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+    }
+
+    .btn-play {
+        background: #4CAF50;
+        border: none;
+        border-radius: 8px;
+        padding: 0.3rem 0.8rem;
+        color: white;
+        font-size: 0.7rem;
+    }
+
+    .btn-play:hover {
+        background: #45a049;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .modal-content-custom {
+        border-radius: 20px;
+        border: none;
+    }
+
+    .modal-header-custom {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        color: white;
+        border-radius: 20px 20px 0 0;
+        padding: 1rem 1.5rem;
+    }
+
+    .upload-area {
+        border: 2px dashed #e0e0e0;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .upload-area:hover {
+        border-color: #FF5722;
+        background: #FFF3E0;
+    }
+
+    .search-box {
+        max-width: 300px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 0.6rem 1rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #FF5722;
+        box-shadow: 0 0 0 3px rgba(255,87,34,0.1);
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title">
+            <i class="fas fa-headphones me-2" style="color: #FF5722;"></i>Quản lý Audio
+        </h2>
+        <div class="search-box">
+            <input type="text" id="searchInput" class="form-control" placeholder="🔍 Tìm kiếm audio...">
+        </div>
+    </div>
+
+    <!-- Thống kê -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-headphones fa-2x" style="color: #FF5722;"></i>
+                <h3 class="mt-2 mb-0">@Model.Audios.Count</h3>
+                <small class="text-muted">Tổng số Audio</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-map-marker-alt fa-2x" style="color: #17a2b8;"></i>
+                <h3 class="mt-2 mb-0">@Model.Audios.Select(a => a.PointId).Distinct().Count()</h3>
+                <small class="text-muted">Địa điểm có Audio</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class="fas fa-language fa-2x" style="color: #28a745;"></i>
+                <h3 class="mt-2 mb-0">7</h3>
+                <small class="text-muted">Ngôn ngữ</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <button class="btn-upload w-100" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="fas fa-upload me-2"></i>Tải lên Audio mới
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách Audio -->
+    <div class="audio-container">
+        <div class="audio-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5><i class="fas fa-list me-2 text-info"></i>Danh sách Audio</h5>
+                <small class="text-muted">Quản lý file audio hướng dẫn cho các địa điểm</small>
+            </div>
+            <button id="refreshBtn" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-sync-alt me-1"></i>Làm mới
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-audio">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Địa điểm</th>
+                        <th>Tên file</th>
+                        <th>Ngôn ngữ</th>
+                        <th>Audio</th>
+                        <th>Ngày tạo</th>
+                        <th style="width: 100px">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="audioTableBody">
+                    @if (Model.Audios.Any())
+                    {
+                        int stt = 1;
+                        foreach (var audio in Model.Audios)
+                        {
+                            <tr>
+                                <td>@(stt++)</td>
+                                <td class="fw-bold">@audio.LocationPoint?.Name ?? "Không xác định"</td>
+                                <td>@audio.FileName</td>
+                                <td><span class="badge-language">@(audio.Language?.LanguageName ?? "Tiếng Việt")</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(audio.FilePath))
+                                    {
+                                        <audio controls class="audio-player" preload="none">
+                                            <source src="@audio.FilePath" type="audio/mpeg">
+                                            Trình duyệt không hỗ trợ
+                                        </audio>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Chưa có file</span>
+                                    }
+                                </td>
+                                <td>@audio.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAudio(@audio.AudioId)" title="Xóa">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <i class="fas fa-headphones"></i>
+                                    <p>Chưa có file audio nào</p>
+                                    <small>Hãy tải lên file audio mới bằng nút bên trên</small>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Upload Audio -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-content-custom">
+            <div class="modal-header-custom">
+                <h5 class="modal-title">
+                    <i class="fas fa-upload me-2"></i>Tải lên Audio mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label">Chọn địa điểm</label>
+                    <select id="locationSelect" class="form-select">
+                        <option value="">-- Chọn địa điểm --</option>
+                        @foreach (var loc in Model.Locations)
+                        {
+                            <option value="@loc.PointId">@loc.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Chọn ngôn ngữ</label>
+                    <select id="languageSelect" class="form-select">
+                        <option value="1">🇻🇳 Tiếng Việt</option>
+                        <option value="2">🇬🇧 English</option>
+                        <option value="3">🇯🇵 日本語</option>
+                        <option value="4">🇨🇳 中文</option>
+                        <option value="5">🇰🇷 한국어</option>
+						<option value="6">🇫🇷 Français</option>
+						<option value="7">🇩🇪 Deutsch</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Chọn file Audio</label>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-3x" style="color: #FF5722;"></i>
+                        <p class="mt-2 mb-0">Nhấp để chọn file audio</p>
+                        <small class="text-muted">Hỗ trợ MP3, WAV, OGG (tối đa 10MB)</small>
+                        <input type="file" id="audioFile" accept="audio/*" style="display: none;" />
+                    </div>
+                    <div id="fileNameDisplay" class="text-muted small mt-2"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="saveAudioBtn" style="background: #FF5722; border: none;">
+                    <i class="fas fa-save me-2"></i>Lưu Audio
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedFile = null;
+
+    // Upload area click
+    document.getElementById('uploadArea')?.addEventListener('click', function() {
+        document.getElementById('audioFile').click();
+    });
+
+    // Preview file name
+    document.getElementById('audioFile')?.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            document.getElementById('fileNameDisplay').innerHTML = `<i class="fas fa-check-circle text-success"></i> ${selectedFile.name}`;
+        }
+    });
+
+    // Save audio
+    document.getElementById('saveAudioBtn')?.addEventListener('click', async function() {
+        const locationId = document.getElementById('locationSelect').value;
+        const languageId = document.getElementById('languageSelect').value;
+
+        if (!locationId) {
+            alert('Vui lòng chọn địa điểm');
+            return;
+        }
+
+        if (!selectedFile) {
+            alert('Vui lòng chọn file audio');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pointId', locationId);
+        formData.append('languageId', languageId);
+        formData.append('audioFile', selectedFile);
+
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tải...';
+        this.disabled = true;
+
+        try {
+            const response = await fetch('/api/AudioApi/UploadAudio', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Tải lên thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + result.message);
+            }
+        } catch (error) {
+            alert('Lỗi khi tải lên: ' + error.message);
+        } finally {
+            this.innerHTML = '<i class="fas fa-save me-2"></i>Lưu Audio';
+            this.disabled = false;
+        }
+    });
+
+    // Delete audio
+    async function deleteAudio(id) {
+        if (confirm('Bạn có chắc chắn muốn xóa audio này?')) {
+            try {
+                const response = await fetch(`/api/AudioApi/DeleteAudio?id=${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Xóa thất bại');
+                }
+            } catch (error) {
+                alert('Lỗi khi xóa audio');
+            }
+        }
+    }
+
+    // Search
+    document.getElementById('searchInput')?.addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#audioTableBody tr');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (text.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // Refresh
+    document.getElementById('refreshBtn')?.addEventListener('click', function() {
+        location.reload();
+    });
+</script>

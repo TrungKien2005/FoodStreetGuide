@@ -1,0 +1,144 @@
+﻿@page "{id:int?}"
+@model doanC_Admin.Pages.LocationPoints.DeleteModel
+@{
+    ViewData["Title"] = "Xóa địa điểm";
+}
+
+<style>
+    .delete-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        padding: 1.5rem;
+        color: white;
+    }
+
+    .info-table {
+        width: 100%;
+    }
+
+        .info-table th {
+            width: 150px;
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+        }
+
+        .info-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+    .delete-image {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+    }
+
+    .btn-confirm {
+        background: #dc3545;
+        border: none;
+        padding: 0.6rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-confirm:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+    .badge-category {
+        background: #FFF3E0;
+        color: #FF5722;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="delete-card">
+                <div class="delete-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Xác nhận xóa địa điểm
+                    </h3>
+                </div>
+                <div class="p-4">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Cảnh báo!</strong> Bạn có chắc chắn muốn xóa địa điểm này? Hành động này không thể hoàn tác.
+                    </div>
+
+                    <table class="info-table">
+                        <tr><th>ID</th><td>@Model.LocationPoint.PointId</td></tr>
+                        <tr><th>Tên địa điểm</th><td><strong>@Model.LocationPoint.Name</strong></td></tr>
+                        <tr><th>Danh mục</th><td><span class="badge-category">@(Model.LocationPoint.Category ?? "Chưa phân loại")</span></td></tr>
+                        <tr><th>Địa chỉ</th><td>@(string.IsNullOrEmpty(Model.LocationPoint.Address) ? "Chưa cập nhật" : Model.LocationPoint.Address)</td></tr>
+                        @{
+                            var hasCoordinates = Model.LocationPoint.Latitude.HasValue && Model.LocationPoint.Longitude.HasValue;
+                            var lat = hasCoordinates ? Model.LocationPoint.Latitude.Value.ToString("F6") : "Chưa cập nhật";
+                            var lng = hasCoordinates ? Model.LocationPoint.Longitude.Value.ToString("F6") : "Chưa cập nhật";
+                        }
+
+                        <tr>
+                            <th>Tọa độ</th>
+                            <td>
+                                @if (hasCoordinates)
+                                {
+                                    <span>@lat, @lng</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa cập nhật</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr><th>Đánh giá</th><td>⭐ @((Model.LocationPoint.Rating ?? 0).ToString("F1")) / 5</td></tr>
+                        <tr><th>Ngày tạo</th><td>@Model.LocationPoint.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                        <tr><th>Cập nhật</th><td>@Model.LocationPoint.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                    </table>
+
+                    @if (!string.IsNullOrEmpty(Model.LocationPoint.Image))
+                    {
+                        <div class="text-center my-3">
+                            <label class="fw-bold">Ảnh đại diện:</label>
+                            <div>
+                                <img src="/images/@Model.LocationPoint.Image" class="delete-image mt-2" />
+                            </div>
+                        </div>
+                    }
+
+                    <form method="post" class="mt-4">
+                        <input type="hidden" asp-for="LocationPoint.PointId" />
+                        <div class="d-flex justify-content-between">
+                            <a asp-page="./Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-confirm" onclick="return confirm('Bạn có chắc chắn muốn xóa địa điểm này?');">
+                                <i class="fas fa-trash me-2"></i>Xác nhận xóa
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

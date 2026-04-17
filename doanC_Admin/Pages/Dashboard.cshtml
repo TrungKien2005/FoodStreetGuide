@@ -1,0 +1,912 @@
+﻿@page
+@model DashboardModel
+@{
+    ViewData["Title"] = "Dashboard | FoodStreet Guide";
+    Layout = "_Layout";
+}
+
+<style>
+    /* Heatmap Container */
+    .heatmap-container {
+        height: 400px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+    }
+    .heatmap-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .heatmap-legend {
+        position: absolute;
+        bottom: 15px;
+        right: 15px;
+        background: rgba(0,0,0,0.7);
+        padding: 10px 15px;
+        border-radius: 8px;
+        color: white;
+        font-size: 12px;
+        z-index: 10;
+    }
+    .legend-color {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        margin-right: 5px;
+    }
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .stat-icon.orange-bg {
+        background: #FFF3E0;
+        color: #FF5722;
+    }
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+    .stat-label {
+        font-size: 0.8rem;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    .chart-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: none;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+    .chart-card .card-header {
+        background: white;
+        border-bottom: 1px solid #ecf0f1;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    .chart-card .card-header i {
+        color: #FF5722;
+        margin-right: 0.5rem;
+    }
+    .chart-card .card-body {
+        padding: 1.25rem;
+    }
+    .badge-orange {
+        background: #FFF3E0;
+        color: #FF5722;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    .trend-up { color: #27ae60; }
+    .trend-down { color: #e74c3c; }
+    .avatar-placeholder {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #FFF3E0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #FF5722;
+        font-weight: bold;
+    }
+    .status-online { color: #27ae60; }
+    .status-idle { color: #f39c12; }
+    .status-timeout { color: #e74c3c; }
+    .login-history-table {
+        font-size: 0.8rem;
+    }
+    .login-history-table td, .login-history-table th {
+        padding: 0.5rem;
+    }
+</style>
+
+<div class="container-fluid px-4">
+
+    <!-- ========== 6 THẺ THỐNG KÊ REAL-TIME ========== -->
+    <div class="row">
+        <div class="col-xl-2 col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-value" id="totalLocations">@Model.TotalLocations</div>
+                <div class="stat-label">Tổng địa điểm</div>
+                <small class="text-muted" id="pendingPOI">@Model.TotalPendingPOI chờ duyệt</small>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-value" id="activeUsers">@Model.ActiveUsersNow</div>
+                <div class="stat-label">Đang hoạt động</div>
+                <small class="text-muted">Tổng: <span id="totalLoggedIn">@Model.TotalLoggedIn</span></small>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div class="stat-value" id="activeDevices">0</div>
+                <div class="stat-label">Thiết bị online</div>
+                <small class="text-muted">Hôm nay: <span id="todayVisitors">@Model.TodayVisitors</span></small>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <div class="stat-value" id="todayScans">@Model.TodayScans.ToString("N0")</div>
+                <div class="stat-label">Lượt quét hôm nay</div>
+                <small class="text-muted">1 giờ qua: <span id="scansLastHour">@Model.ScansLastHour</span></small>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-headphones"></i>
+                </div>
+                <div class="stat-value" id="totalListens">@Model.TotalListens.ToString("N0")</div>
+                <div class="stat-label">Lượt nghe Audio</div>
+                <small class="text-muted">Hôm nay: <span id="todayTTSPlays">@Model.TodayTTSPlays</span></small>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon orange-bg">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-value" id="avgListenTime">@Model.AvgListenTime.ToString("F0")<small>s</small></div>
+                <div class="stat-label">TB thời gian nghe/POI</div>
+                <small class="text-muted" id="avgTimeGrowth">@(Model.AvgTimeGrowth > 0 ? $"↑ {Model.AvgTimeGrowth:F1}%" : $"↓ {Math.Abs(Model.AvgTimeGrowth):F1}%")</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== BIỂU ĐỒ LƯU CHUYỂN DI CHUYỂN ========== -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line"></i> Lưu chuyển di chuyển (7 ngày qua)
+                </div>
+                <div class="card-body">
+                    <canvas id="movementChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TOP ĐỊA ĐIỂM ĐƯỢC NGHE + THỜI GIAN NGHE ========== -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-trophy"></i> Top địa điểm được nghe nhiều nhất
+                </div>
+                <div class="card-body">
+                    <canvas id="topListenedChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-hourglass-half"></i> Thời gian thường nghe 1 POI (giây)
+                </div>
+                <div class="card-body">
+                    <canvas id="avgTimeChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== HEATMAP VỊ TRÍ NGƯỜI DÙNG ========== -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-fire"></i> Heatmap - Vị trí người dùng hoạt động
+                </div>
+                <div class="card-body">
+                    <div class="heatmap-container" id="heatmapContainer">
+                        <canvas id="heatmapCanvas" class="heatmap-canvas" width="800" height="400"></canvas>
+                        <div class="heatmap-legend">
+                            <div><span class="legend-color" style="background: #00ff00;"></span> Ít hoạt động</div>
+                            <div><span class="legend-color" style="background: #ffcc00;"></span> Trung bình</div>
+                            <div><span class="legend-color" style="background: #ff6600;"></span> Cao</div>
+                            <div><span class="legend-color" style="background: #ff0000;"></span> Rất cao</div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <span class="badge-orange">
+                            <i class="fas fa-chart-simple"></i> <span id="heatmapPointsCount">@Model.HeatmapPointsCount</span> điểm dữ liệu
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ========== NGƯỜI ĐANG HOẠT ĐỘNG (ADMIN) ========== -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-users"></i> Người đang hoạt động (Admin)
+                    <span class="badge-orange ms-2" id="activeAdminCount">@Model.ActiveUsersNow</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-user"></i> Người dùng</th>
+                                    <th><i class="fas fa-tag"></i> Vai trò</th>
+                                    <th><i class="fas fa-clock"></i> Đăng nhập lúc</th>
+                                    <th><i class="fas fa-chart-line"></i> Hoạt động cuối</th>
+                                    <th><i class="fas fa-network-wired"></i> IP Address</th>
+                                    <th><i class="fas fa-hourglass-half"></i> Thời gian không hoạt động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activeAdminsBody">
+                                @if (Model.ActiveAdminSessions != null && Model.ActiveAdminSessions.Any())
+                                {
+                                    foreach (var session in Model.ActiveAdminSessions)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@session.Username</strong>
+                                                <br /><small class="text-muted">@session.FullName</small>
+                                            </td>
+                                            <td><span class="badge @(session.Role == "Admin" ? "bg-danger" : (session.Role == "Manager" ? "bg-success" : "bg-secondary"))">@session.Role</span></td>
+                                            <td>@session.LoginTime.ToString("HH:mm:ss dd/MM")</td>
+                                            <td>@session.LastActivity.ToString("HH:mm:ss")</td>
+                                            <td><code>@session.IPAddress</code></td>
+                                            <td>
+                                                @if (session.MinutesInactive < 1)
+                                                {
+                                                    <span class="text-success"><i class="fas fa-circle" style="font-size: 8px;"></i> Đang hoạt động</span>
+                                                }
+                                                else if (session.MinutesInactive < 5)
+                                                {
+                                                    <span class="text-warning"><i class="fas fa-clock"></i> @session.MinutesInactive phút</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-danger"><i class="fas fa-exclamation-triangle"></i> @session.MinutesInactive phút</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="6" class="text-center">Không có người dùng đang hoạt động</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- ========== LỊCH SỬ ĐĂNG NHẬP (CÓ PHÂN TRANG) ========== -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="chart-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <div>
+                    <i class="fas fa-history"></i> Lịch sử đăng nhập
+                </div>
+                <div class="d-flex gap-2">
+                    <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto;">
+                        <option value="10" @@(Model.LoginHistoryPageSize == 10 ? "selected" : "")>10 dòng</option>
+                        <option value="20" @@(Model.LoginHistoryPageSize == 20 ? "selected" : "")>20 dòng</option>
+                        <option value="50" @@(Model.LoginHistoryPageSize == 50 ? "selected" : "")>50 dòng</option>
+                        <option value="100" @@(Model.LoginHistoryPageSize == 100 ? "selected" : "")>100 dòng</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover login-history-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Người dùng</th>
+                                <th>Thời gian đăng nhập</th>
+                                <th>Thời gian đăng xuất</th>
+                                <th>IP Address</th>
+                                <th>Thiết bị</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.LoginHistory != null && Model.LoginHistory.Any())
+                            {
+                                foreach (var log in Model.LoginHistory)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@log.Username</strong>
+                                            @if (!string.IsNullOrEmpty(log.FullName))
+                                            {
+                                                <br /><small class="text-muted">@log.FullName</small>
+                                            }
+                                        </td>
+                                        <td>@log.LoginTime.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                        <td>
+                                            @if (log.LogoutTime.HasValue)
+                                            {
+                                                @log.LogoutTime.Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">--</span>
+                                            }
+                                        </td>
+                                        <td><code>@log.IPAddress</code></td>
+                                        <td>@(log.DeviceInfo?.Length > 35 ? log.DeviceInfo.Substring(0, 35) + "..." : log.DeviceInfo)</td>
+                                        <td>
+                                            @if (log.IsCurrentlyActive)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-circle me-1" style="font-size: 8px;"></i> Đang hoạt động
+                                                </span>
+                                            }
+                                            else if (log.LogoutTime.HasValue)
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-sign-out-alt me-1"></i> Đã đăng xuất
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-clock me-1"></i> Hết phiên
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="6" class="text-center">Chưa có dữ liệu</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PHÂN TRANG -->
+                @if (Model.LoginHistoryTotalPages > 1)
+                {
+                    <nav aria-label="Page navigation" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            @if (Model.LoginHistoryPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1&pageSize=@Model.LoginHistoryPageSize">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=@(Model.LoginHistoryPage - 1)&pageSize=@Model.LoginHistoryPageSize">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @{
+                                int startPage = Math.Max(1, Model.LoginHistoryPage - 2);
+                                int endPage = Math.Min(Model.LoginHistoryTotalPages, Model.LoginHistoryPage + 2);
+                            }
+
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.LoginHistoryPage ? "active" : "")">
+                                    <a class="page-link" href="?page=@i&pageSize=@Model.LoginHistoryPageSize">@i</a>
+                                </li>
+                            }
+
+                            @if (endPage < Model.LoginHistoryTotalPages)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+
+                            @if (Model.LoginHistoryPage < Model.LoginHistoryTotalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=@(Model.LoginHistoryPage + 1)&pageSize=@Model.LoginHistoryPageSize">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=@Model.LoginHistoryTotalPages&pageSize=@Model.LoginHistoryPageSize">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+
+                <div class="text-center text-muted small mt-2">
+                    Hiển thị @Model.LoginHistory.Count / @Model.LoginHistoryTotalCount bản ghi
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
+
+    <!-- ========== THIẾT BỊ ĐANG HOẠT ĐỘNG (MAUI) ========== -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-mobile-alt"></i> Thiết bị MAUI đang hoạt động
+                    <span class="badge-orange ms-2" id="deviceCount">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-mobile"></i> Thiết bị</th>
+                                    <th><i class="fas fa-chart-line"></i> Hoạt động cuối</th>
+                                    <th><i class="fas fa-qrcode"></i> QR Scans</th>
+                                    <th><i class="fas fa-headphones"></i> TTS Listens</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devicesTableBody">
+                                <tr><td colspan="4" class="text-center">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== LỊCH SỬ ĐĂNG NHẬP ========== -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-history"></i> Lịch sử đăng nhập (7 ngày gần nhất)
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover login-history-table" id="loginHistoryTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Người dùng</th>
+                                    <th>Thời gian đăng nhập</th>
+                                    <th>Thời gian đăng xuất</th>
+                                    <th>IP Address</th>
+                                    <th>Thiết bị</th>
+                                    <th>Trạng thái</th>
+                                 </tr>
+                            </thead>
+                            <tbody id="loginHistoryBody">
+                                @if (Model.LoginHistory != null && Model.LoginHistory.Any())
+                                {
+                                    foreach (var log in Model.LoginHistory.Take(20))
+                                    {
+                                        <tr>
+                                            <td><strong>@log.Username</strong></td>
+                                            <td>@log.LoginTime.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                            <td>@(log.LogoutTime?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Đang hoạt động")</td>
+                                            <td><code>@log.IPAddress</code></td>
+                                            <td>@(log.DeviceInfo?.Length > 30 ? log.DeviceInfo.Substring(0, 30) + "..." : log.DeviceInfo)</td>
+                                            <td><span class="badge @(log.Status == "Success" ? "bg-success" : "bg-danger")">@log.Status</span></td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="6" class="text-center">Chưa có dữ liệu</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ĐỊA ĐIỂM CHỜ DUYỆT ========== -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-clock"></i> Địa điểm chờ duyệt
+                    <span class="badge-orange ms-2" id="pendingCount">@Model.TotalPendingPOI</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="pendingLocationsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên địa điểm</th>
+                                    <th>Chủ quán</th>
+                                    <th>Ngày đăng ký</th>
+                                    <th>Thao tác</th>
+                                 </tr>
+                            </thead>
+                            <tbody id="pendingLocationsBody">
+                                @if (Model.PendingLocations != null && Model.PendingLocations.Any())
+                                {
+                                    foreach (var loc in Model.PendingLocations)
+                                    {
+                                        <tr>
+                                            <td>@loc.PointId</td>
+                                            <td>@loc.Name</td>
+                                            <td>@loc.OwnerName</td>
+                                            <td>@loc.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-success" onclick="approveLocation(@loc.PointId, true)">
+                                                    <i class="fas fa-check"></i> Duyệt
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="approveLocation(@loc.PointId, false)">
+                                                    <i class="fas fa-times"></i> Từ chối
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="5" class="text-center">Không có địa điểm chờ duyệt</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <script>
+        // ========== BIỂU ĐỒ ==========
+        new Chart(document.getElementById('movementChart'), {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.MovementLabels)),
+                datasets: [{
+                    label: 'Lượt di chuyển',
+                    data: @Html.Raw(Json.Serialize(Model.MovementData)),
+                    borderColor: '#FF5722',
+                    backgroundColor: 'rgba(255,87,34,0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#FF5722',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+
+        new Chart(document.getElementById('topListenedChart'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.TopListenedNames)),
+                datasets: [{
+                    label: 'Lượt nghe',
+                    data: @Html.Raw(Json.Serialize(Model.TopListenedCounts)),
+                    backgroundColor: '#FF5722',
+                    borderRadius: 8
+                }]
+            },
+            options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } } }
+        });
+
+        new Chart(document.getElementById('avgTimeChart'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.AvgTimeLabels)),
+                datasets: [{
+                    label: 'Thời gian nghe (giây)',
+                    data: @Html.Raw(Json.Serialize(Model.AvgTimeData)),
+                    backgroundColor: '#FF8A65',
+                    borderRadius: 8
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Giây' } } } }
+        });
+
+        // ========== HEATMAP ==========
+        (function() {
+            var heatmapPoints = @Html.Raw(Json.Serialize(Model.HeatmapPoints));
+            var canvas = document.getElementById('heatmapCanvas');
+            if (!canvas || !heatmapPoints.length) return;
+
+            var ctx = canvas.getContext('2d');
+            var width = canvas.clientWidth;
+            var height = canvas.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            var lats = heatmapPoints.map(p => p.lat);
+            var lngs = heatmapPoints.map(p => p.lng);
+            var minLat = Math.min(...lats);
+            var maxLat = Math.max(...lats);
+            var minLng = Math.min(...lngs);
+            var maxLng = Math.max(...lngs);
+
+            function latToY(lat) { return ((lat - minLat) / (maxLat - minLat)) * height; }
+            function lngToX(lng) { return ((lng - minLng) / (maxLng - minLng)) * width; }
+
+            var maxIntensity = Math.max(...heatmapPoints.map(p => p.intensity), 1);
+
+            for (var i = 0; i < heatmapPoints.length; i++) {
+                var point = heatmapPoints[i];
+                var x = lngToX(point.lng);
+                var y = latToY(point.lat);
+                var intensity = point.intensity / maxIntensity;
+
+                var r, g, b;
+                if (intensity < 0.25) { r = 0; g = 255; b = 0; }
+                else if (intensity < 0.5) { r = 255; g = 204; b = 0; }
+                else if (intensity < 0.75) { r = 255; g = 102; b = 0; }
+                else { r = 255; g = 0; b = 0; }
+
+                var radius = 15 + intensity * 20;
+                var gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.8)`);
+                gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.4)`);
+                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        })();
+
+        // ========== SIGNALR REAL-TIME ==========
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/dashboardHub")
+            .withAutomaticReconnect()
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        let isRefreshing = false;
+
+        connection.on("ReceiveDashboardUpdate", function () {
+            console.log("📡 Dashboard update received - refreshing data...");
+            if (!isRefreshing) {
+                isRefreshing = true;
+                location.reload();
+            }
+        });
+
+        connection.on("ReceiveNewData", function (dataType, count) {
+            console.log(`📊 New data: ${dataType} - ${count} records`);
+            showToast(dataType, `Có ${count} dữ liệu mới!`, "info");
+            loadActiveDevices();
+            loadStats();
+        });
+
+        connection.on("ReceiveNotification", function (title, message, type) {
+            console.log(`🔔 Notification: ${title} - ${message}`);
+            showToast(title, message, type || "success");
+        });
+
+        connection.on("RefreshDeviceList", function () {
+            loadActiveDevices();
+        });
+
+        connection.on("RefreshStats", function () {
+            loadStats();
+        });
+
+        connection.on("UserConnected", function (connectionId) {
+            console.log(`👤 User connected: ${connectionId}`);
+            loadAdminUsers();
+        });
+
+        connection.on("UserDisconnected", function (connectionId) {
+            console.log(`👋 User disconnected: ${connectionId}`);
+            loadAdminUsers();
+        });
+
+        // ========== API CALLS ==========
+                async function loadActiveDevices() {
+            try {
+                const response = await fetch('/api/DeviceTracking/GetActiveDevices');
+                const devices = await response.json();
+                const tbody = document.getElementById('devicesTableBody');
+                if (tbody) {
+                    if (devices && devices.length > 0) {
+                        tbody.innerHTML = devices.map(d => `
+                            <tr>
+                                <td><strong>${d.deviceName || 'Unknown'}</strong><br/><small>${d.platform || 'Unknown'}</small></td>
+                                <td>${new Date(d.lastActivity).toLocaleString()}</td>
+                                <td><span class="badge bg-primary">${d.totalScans || 0}</span></td>
+                                <td><span class="badge bg-success">${d.totalListens || 0}</span></td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td></tr>';
+                    }
+                    document.getElementById('deviceCount') && (document.getElementById('deviceCount').innerText = devices?.length || 0);
+                    document.getElementById('activeDevices') && (document.getElementById('activeDevices').innerText = devices?.length || 0);
+                }
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                const tbody = document.getElementById('devicesTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Lỗi tải dữ liệu</td></tr>';
+                }
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/DeviceTracking/GetStats');
+                const stats = await response.json();
+                if (stats) {
+                    document.getElementById('totalDevices') && (document.getElementById('totalDevices').innerText = stats.totalDevices || 0);
+                    document.getElementById('activeDevices') && (document.getElementById('activeDevices').innerText = stats.activeDevices || 0);
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadAdminUsers() {
+            try {
+                const response = await fetch('/api/Admin/GetActiveUsers');
+                const users = await response.json();
+                const tbody = document.getElementById('adminUsersTable');
+                if (tbody && users) {
+                    // Update table
+                }
+            } catch (error) {
+                console.error('Error loading admin users:', error);
+            }
+        }
+
+        async function approveLocation(pointId, isApproved) {
+            try {
+                const response = await fetch('/api/LocationApi/ApproveLocation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pointId: pointId, isApproved: isApproved })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast("Thành công", isApproved ? "Đã duyệt địa điểm" : "Đã từ chối địa điểm", "success");
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast("Lỗi", result.message, "error");
+                }
+            } catch (error) {
+                console.error('Error approving location:', error);
+            }
+        }
+
+        function showToast(title, message, type) {
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.style.position = 'fixed';
+                toastContainer.style.bottom = '20px';
+                toastContainer.style.right = '20px';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+
+            const toast = document.createElement('div');
+            toast.style.background = type === 'success' ? '#4caf50' : (type === 'warning' ? '#ff9800' : (type === 'error' ? '#f44336' : '#2196f3'));
+            toast.style.color = 'white';
+            toast.style.padding = '12px 20px';
+            toast.style.marginBottom = '10px';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            toast.style.animation = 'slideInRight 0.3s ease';
+            toast.style.fontSize = '14px';
+            toast.style.minWidth = '250px';
+            toast.innerHTML = `<strong>${title}</strong><br/><small>${message}</small>`;
+
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @@keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Kết nối SignalR
+        connection.start()
+            .then(function () {
+                console.log("✅ SignalR connected successfully!");
+                loadActiveDevices();
+                loadStats();
+            })
+            .catch(function (err) {
+                console.error("❌ SignalR connection failed: " + err.toString());
+                setTimeout(function() { connection.start(); }, 5000);
+            });
+
+        connection.onreconnecting(function (error) {
+            console.warn("⚠️ SignalR reconnecting...", error);
+        });
+
+        connection.onreconnected(function (connectionId) {
+            console.log("✅ SignalR reconnected! ConnectionId:", connectionId);
+        });
+
+        // Auto refresh mỗi 30 giây
+        setInterval(loadActiveDevices, 30000);
+        setInterval(loadStats, 60000);
+                // ========== PHÂN TRANG LỊCH SỬ ĐĂNG NHẬP ==========
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', function() {
+                const pageSize = this.value;
+                window.location.href = `?page=1&pageSize=${pageSize}`;
+            });
+        }
+    </script>
+}

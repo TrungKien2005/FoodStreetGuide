@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="doanC_.Views.SettingsPage"
+    BackgroundColor="#F5EDE4">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Header -->
+        <Grid BackgroundColor="#2C1810" Padding="20,20">
+            <Label 
+                Text="{Binding Settings}" 
+                FontSize="28" 
+                FontAttributes="Bold"
+                TextColor="#D5B8A6"
+                VerticalOptions="Center"/>
+        </Grid>
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1" Padding="0">
+            <VerticalStackLayout Spacing="0" Padding="0">
+
+                <!-- NGON NGU GIONG DOC Section -->
+                <VerticalStackLayout Padding="20,16,20,12" Spacing="0">
+                    <Label 
+                        Text="{Binding LanguageSettingsSection}" 
+                        FontSize="11" 
+                        FontAttributes="Bold"
+                        TextColor="#9E8B7E"
+                        Margin="0"/>
+                </VerticalStackLayout>
+
+                <!-- Language Item -->
+                <Frame Padding="0" HasShadow="False" BorderColor="Transparent" BackgroundColor="White" CornerRadius="12" Margin="15,0,15,10">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLanguageClicked"/>
+                    </Frame.GestureRecognizers>
+                    <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
+                        <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8F4FF" Padding="0" HasShadow="False" VerticalOptions="Center">
+                            <Label Text="Globe" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding LanguageLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label x:Name="LanguageLabel" Text="🇻🇳 Tiếng Việt" FontSize="12" TextColor="#9E8B7E"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                    </Grid>
+                </Frame>
+
+                <!-- Voice Item -->
+                <Frame Padding="0" HasShadow="False" BorderColor="Transparent" BackgroundColor="White" CornerRadius="12" Margin="15,0,15,10">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnVoiceClicked"/>
+                    </Frame.GestureRecognizers>
+                    <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
+                        <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8F9F3" Padding="0" HasShadow="False" VerticalOptions="Center">
+                            <Label Text="Voice" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding VoiceTTSLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label x:Name="VoiceLabel" Text="Giọng nữ" FontSize="12" TextColor="#9E8B7E"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                    </Grid>
+                </Frame>
+
+                <!-- GPS GEOFENCE Section -->
+                <VerticalStackLayout Padding="20,16,20,12" Spacing="0" Margin="0,8,0,0">
+                    <Label 
+                        Text="{Binding GpsGeofenceSection}" 
+                        FontSize="11" 
+                        FontAttributes="Bold"
+                        TextColor="#9E8B7E"
+                        Margin="0"/>
+                </VerticalStackLayout>
+
+                <!-- Radius Item -->
+                <Frame Padding="0" HasShadow="False" BorderColor="Transparent" BackgroundColor="White" CornerRadius="12" Margin="15,0,15,10">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRadiusClicked"/>
+                    </Frame.GestureRecognizers>
+                    <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
+                        <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#F0E8FF" Padding="0" HasShadow="False" VerticalOptions="Center">
+                            <Label Text="Location" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding RadiusActivationLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label x:Name="RadiusLabel" Text="15 mét" FontSize="12" TextColor="#9E8B7E"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                    </Grid>
+                </Frame>
+
+                <!-- Background Tracking Item -->
+                <Frame Padding="0" HasShadow="False" BorderColor="Transparent" BackgroundColor="White" CornerRadius="12" Margin="15,0,15,10">
+                    <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
+                        <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8FFE8" Padding="0" HasShadow="False" VerticalOptions="Center">
+                            <Label Text="Battery" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding BackgroundTrackingLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label Text="{Binding BatterySaveLabel}" FontSize="12" TextColor="#9E8B7E"/>
+                        </VerticalStackLayout>
+                        <Switch 
+                            x:Name="BackgroundTrackingSwitch" 
+                            Grid.Column="2" 
+                            OnColor="#E85C2B"
+                            VerticalOptions="Center"
+                            Toggled="OnBackgroundTrackingToggled"/>
+                    </Grid>
+                </Frame>
+
+                <!-- NOI DUNG OFFLINE Section -->
+                <VerticalStackLayout Padding="20,16,20,12" Spacing="0" Margin="0,8,0,0">
+                    <Label 
+                        Text="{Binding OfflineContentSection}" 
+                        FontSize="11" 
+                        FontAttributes="Bold"
+                        TextColor="#9E8B7E"
+                        Margin="0"/>
+                </VerticalStackLayout>
+
+                <!-- Download Offline Item -->
+                <Frame Padding="0" HasShadow="False" BorderColor="Transparent" BackgroundColor="White" CornerRadius="12" Margin="15,0,15,20">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnOfflinePackageClicked"/>
+                    </Frame.GestureRecognizers>
+                    <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
+                        <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8F0FF" Padding="0" HasShadow="False" VerticalOptions="Center">
+                            <Label Text="Download" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding DownloadOfflineLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label x:Name="OfflinePackageLabel" Text="{Binding OfflinePackageInfo}" FontSize="12" TextColor="#9E8B7E"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                    </Grid>
+                </Frame>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

@@ -1,0 +1,708 @@
+﻿@page
+@model doanC_Admin.Pages.QRCodes.IndexModel
+@{
+    ViewData["Title"] = "Quản lý QR Code";
+}
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .qr-container {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+    }
+
+    .qr-header {
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 0.6rem 1rem;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #FF5722;
+            box-shadow: 0 0 0 3px rgba(255,87,34,0.1);
+        }
+
+    .btn-generate {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        border: none;
+        padding: 0.6rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        width: 100%;
+        color: white;
+    }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+        }
+
+    /* QR Card Grid */
+    .qr-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .qr-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+        .qr-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+    .qr-card-image {
+        background: linear-gradient(135deg, #f8f9fa, #fff);
+        padding: 2rem;
+        text-align: center;
+        border-bottom: 1px solid #ecf0f1;
+        cursor: pointer;
+    }
+
+        .qr-card-image img {
+            max-width: 180px;
+            max-height: 180px;
+            transition: transform 0.3s;
+        }
+
+    .qr-card:hover .qr-card-image img {
+        transform: scale(1.05);
+    }
+
+    .qr-card-info {
+        padding: 1rem;
+    }
+
+    .qr-card-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .qr-card-location {
+        font-size: 0.75rem;
+        color: #7f8c8d;
+        margin-bottom: 0.5rem;
+    }
+
+    .qr-card-date {
+        font-size: 0.65rem;
+        color: #95a5a6;
+    }
+
+    .qr-card-actions {
+        display: flex;
+        justify-content: space-around;
+        padding: 0.75rem 1rem 1rem;
+        border-top: 1px solid #ecf0f1;
+    }
+
+    .action-icon {
+        cursor: pointer;
+        font-size: 1.1rem;
+        transition: all 0.2s;
+        padding: 0.5rem;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .action-icon.view:hover {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .action-icon.edit:hover {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .action-icon.delete:hover {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+    .badge-status {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.6rem;
+        font-weight: 500;
+        z-index: 1;
+    }
+
+    .badge-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    /* Modal */
+    .qr-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.85);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+        .qr-modal.show {
+            display: flex;
+        }
+
+    .qr-modal-content {
+        background: white;
+        border-radius: 30px;
+        max-width: 550px;
+        width: 90%;
+        padding: 2rem;
+        text-align: center;
+        position: relative;
+        animation: fadeInScale 0.3s ease;
+    }
+
+    @@keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .qr-modal-close {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s;
+    }
+
+        .qr-modal-close:hover {
+            color: #FF5722;
+        }
+
+    .qr-modal-image {
+        max-width: 250px;
+        max-height: 250px;
+        margin: 1rem auto;
+        display: block;
+        border-radius: 16px;
+    }
+
+    .qr-modal-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .qr-modal-location {
+        color: #FF5722;
+        margin-bottom: 0.5rem;
+    }
+
+    .qr-modal-link {
+        background: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        word-break: break-all;
+        margin: 1rem 0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+    .search-box {
+        max-width: 300px;
+    }
+
+    .stat-card {
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .upload-area {
+        border: 2px dashed #e0e0e0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-top: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .upload-area:hover {
+            border-color: #FF5722;
+            background: #fff3e0;
+        }
+
+    .preview-image {
+        max-width: 150px;
+        max-height: 150px;
+        margin-top: 0.5rem;
+        border-radius: 8px;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title">
+            <i class="fas fa-qrcode me-2" style="color: #FF5722;"></i>Quản lý QR Code
+        </h2>
+        <div class="search-box">
+            <input type="text" id="searchInput" class="form-control" placeholder="🔍 Tìm kiếm QR Code...">
+        </div>
+    </div>
+
+    <!-- Row 1: Tạo QR Code mới -->
+    <div class="row">
+        <div class="col-md-5">
+            <div class="qr-container">
+                <div class="qr-header">
+                    <h5><i class="fas fa-plus-circle me-2 text-primary"></i>Tạo QR Code mới</h5>
+                    <small class="text-muted">Chọn địa điểm để tạo mã QR tương ứng</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Chọn địa điểm</label>
+                    <select id="locationSelect" class="form-select">
+                        <option value="">-- Chọn địa điểm --</option>
+                        @foreach (var loc in Model.Locations)
+                        {
+                            <option value="@loc.PointId">@loc.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tên QR Code (tùy chọn)</label>
+                    <input type="text" id="qrName" class="form-control" placeholder="VD: QR_MainGate_01" />
+                </div>
+
+                <button id="generateBtn" class="btn-generate">
+                    <i class="fas fa-qrcode me-2"></i>Tạo QR Code
+                </button>
+            </div>
+        </div>
+
+        <!-- Thống kê nhanh -->
+        <div class="col-md-7">
+            <div class="qr-container">
+                <div class="qr-header">
+                    <h5><i class="fas fa-chart-simple me-2 text-success"></i>Thống kê QR Code</h5>
+                    <small class="text-muted">Tổng quan về mã QR trong hệ thống</small>
+                </div>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="stat-card">
+                            <i class="fas fa-qrcode fa-2x" style="color: #FF5722;"></i>
+                            <h3 class="mt-2 mb-0" id="totalCount">@Model.QRCodes.Count</h3>
+                            <small class="text-muted">Tổng QR</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-card">
+                            <i class="fas fa-map-marker-alt fa-2x" style="color: #17a2b8;"></i>
+                            <h3 class="mt-2 mb-0">@Model.Locations.Count</h3>
+                            <small class="text-muted">Địa điểm</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-card">
+                            <i class="fas fa-calendar fa-2x" style="color: #28a745;"></i>
+                            <h3 class="mt-2 mb-0">@Model.QRCodes.Count(q => q.CreatedAt.Date == DateTime.Now.Date)</h3>
+                            <small class="text-muted">Hôm nay</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Danh sách QR Code dạng Card -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="qr-container">
+                <div class="qr-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5><i class="fas fa-th-large me-2 text-info"></i>Danh sách QR Code</h5>
+                        <small class="text-muted">Nhấp vào ảnh để xem chi tiết</small>
+                    </div>
+                    <button id="refreshBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-sync-alt me-1"></i>Làm mới
+                    </button>
+                </div>
+
+                <div id="qrGridContainer" class="qr-grid">
+                    @if (Model.QRCodes.Any())
+                    {
+                        foreach (var qr in Model.QRCodes)
+                        {
+                            <div class="qr-card" data-id="@qr.QrId" data-name="@qr.Name" data-location="@qr.LocationName" data-link="@qr.QrContent" data-image="@qr.QrImagePath">
+                                <span class="badge-status @(qr.IsActive ? "badge-active" : "badge-inactive")">
+                                    @(qr.IsActive ? "● Hoạt động" : "○ Không hoạt động")
+                                </span>
+                                <div class="qr-card-image" onclick="viewQR(@qr.QrId, '@qr.Name', '@qr.LocationName', '@qr.QrContent', '@qr.QrImagePath')">
+                                    @if (!string.IsNullOrEmpty(qr.QrImagePath))
+                                    {
+                                        <img src="@qr.QrImagePath" alt="QR Code" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-qrcode" style="font-size: 100px; color: #ccc;"></i>
+                                    }
+                                </div>
+                                <div class="qr-card-info">
+                                    <div class="qr-card-title">@qr.Name</div>
+                                    <div class="qr-card-location">
+                                        <i class="fas fa-map-marker-alt me-1"></i>@qr.LocationName
+                                    </div>
+                                    <div class="qr-card-date">
+                                        <i class="fas fa-calendar me-1"></i>@qr.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                </div>
+                                <div class="qr-card-actions">
+                                    <div class="action-icon view" onclick="viewQR(@qr.QrId, '@qr.Name', '@qr.LocationName', '@qr.QrContent', '@qr.QrImagePath')" title="Xem QR">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                    <div class="action-icon edit" onclick="openEditModal(@qr.QrId, '@qr.Name', '@qr.QrImagePath')" title="Sửa QR">
+                                        <i class="fas fa-pen"></i>
+                                    </div>
+                                    <div class="action-icon delete" onclick="deleteQR(@qr.QrId)" title="Xóa QR">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-qrcode"></i>
+                            <p>Chưa có mã QR nào</p>
+                            <small>Hãy tạo mã QR mới bằng form bên trên</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Xem QR -->
+<div id="viewModal" class="qr-modal">
+    <div class="qr-modal-content">
+        <span class="qr-modal-close" onclick="closeViewModal()">&times;</span>
+        <img id="viewModalImage" class="qr-modal-image" src="" alt="QR Code" />
+        <div class="qr-modal-title" id="viewModalTitle"></div>
+        <div class="qr-modal-location" id="viewModalLocation"></div>
+        <div class="qr-modal-link" id="viewModalLink"></div>
+        <div class="mt-3">
+            <button class="btn btn-success" id="viewModalDownloadBtn">
+                <i class="fas fa-download me-2"></i>Tải xuống PNG
+            </button>
+            <button class="btn btn-secondary" onclick="closeViewModal()">
+                <i class="fas fa-times me-2"></i>Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sửa QR (Upload ảnh thủ công) -->
+<div id="editModal" class="qr-modal">
+    <div class="qr-modal-content" style="max-width: 450px;">
+        <span class="qr-modal-close" onclick="closeEditModal()">&times;</span>
+        <h4><i class="fas fa-pen me-2" style="color: #FF5722;"></i>Sửa QR Code</h4>
+        <hr />
+        <div class="mb-3">
+            <label class="form-label">Tên QR Code</label>
+            <input type="text" id="editQrName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Tải ảnh QR thủ công</label>
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('qrImageFile').click()">
+                <i class="fas fa-cloud-upload-alt fa-2x" style="color: #FF5722;"></i>
+                <p class="mb-0">Nhấp để chọn ảnh QR</p>
+                <small class="text-muted">Hỗ trợ PNG, JPG, JPEG</small>
+                <input type="file" id="qrImageFile" accept="image/png,image/jpeg,image/jpg" style="display: none;" />
+            </div>
+            <div id="imagePreview" class="text-center mt-2"></div>
+        </div>
+        <input type="hidden" id="editQrId" />
+        <div class="mt-3">
+            <button class="btn btn-primary w-100" onclick="saveQR()">
+                <i class="fas fa-save me-2"></i>Lưu thay đổi
+            </button>
+            <button class="btn btn-secondary w-100 mt-2" onclick="closeEditModal()">
+                <i class="fas fa-times me-2"></i>Hủy
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentViewQR = null;
+    let selectedFile = null;
+
+    // ========== TẠO QR ==========
+    document.getElementById('generateBtn')?.addEventListener('click', async function() {
+        const locationId = document.getElementById('locationSelect').value;
+        const qrName = document.getElementById('qrName').value;
+
+        if (!locationId) {
+            alert('Vui lòng chọn địa điểm');
+            return;
+        }
+
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tạo...';
+        this.disabled = true;
+
+        try {
+            const response = await fetch('/api/QrApi/GenerateQR', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pointId: parseInt(locationId),
+                    name: qrName || `QR_${locationId}_${Date.now()}`,
+                    size: 200
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Lỗi: ' + result.message);
+            }
+        } catch (error) {
+            alert('Lỗi khi tạo QR Code: ' + error.message);
+        } finally {
+            this.innerHTML = '<i class="fas fa-qrcode me-2"></i>Tạo QR Code';
+            this.disabled = false;
+        }
+    });
+
+    // ========== XEM QR ==========
+    function viewQR(id, name, location, link, imageData) {
+        currentViewQR = { id, name, location, link, imageData };
+
+        document.getElementById('viewModalImage').src = imageData || 'https://via.placeholder.com/250?text=No+Image';
+        document.getElementById('viewModalTitle').innerText = name;
+        document.getElementById('viewModalLocation').innerHTML = '<i class="fas fa-map-marker-alt me-1"></i>' + location;
+        document.getElementById('viewModalLink').innerHTML = '<i class="fas fa-link me-1"></i>' + link;
+
+        document.getElementById('viewModal').classList.add('show');
+    }
+
+    function closeViewModal() {
+        document.getElementById('viewModal').classList.remove('show');
+        currentViewQR = null;
+    }
+
+    // Tải QR từ modal xem
+    document.getElementById('viewModalDownloadBtn')?.addEventListener('click', function() {
+        if (currentViewQR) {
+            downloadQR(currentViewQR.id, currentViewQR.name);
+        }
+    });
+
+    // ========== SỬA QR (Upload ảnh thủ công) ==========
+    function openEditModal(id, name, currentImage) {
+        document.getElementById('editQrId').value = id;
+        document.getElementById('editQrName').value = name;
+        selectedFile = null;
+
+        const previewDiv = document.getElementById('imagePreview');
+        if (currentImage) {
+            previewDiv.innerHTML = `<img src="${currentImage}" class="preview-image" />`;
+        } else {
+            previewDiv.innerHTML = '<p class="text-muted">Chưa có ảnh</p>';
+        }
+
+        document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('show');
+        selectedFile = null;
+        document.getElementById('qrImageFile').value = '';
+    }
+
+    // Xử lý chọn file
+    document.getElementById('qrImageFile')?.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                document.getElementById('imagePreview').innerHTML = `<img src="${ev.target.result}" class="preview-image" />`;
+            };
+            reader.readAsDataURL(selectedFile);
+        }
+    });
+
+    // Lưu sửa QR
+    async function saveQR() {
+        const id = document.getElementById('editQrId').value;
+        const name = document.getElementById('editQrName').value;
+
+        if (!name) {
+            alert('Vui lòng nhập tên QR Code');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('name', name);
+        if (selectedFile) {
+            formData.append('imageFile', selectedFile);
+        }
+
+        try {
+            const response = await fetch('/api/QrApi/UpdateQR', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Cập nhật thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + result.message);
+            }
+        } catch (error) {
+            alert('Lỗi khi cập nhật QR: ' + error.message);
+        }
+    }
+
+    // ========== TẢI QR ==========
+    async function downloadQR(id, name) {
+        try {
+            const response = await fetch(`/api/QrApi/GetQRImage?id=${id}`);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `${name}.png`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            alert('Lỗi khi tải QR Code');
+        }
+    }
+
+    // ========== XÓA QR ==========
+    async function deleteQR(id) {
+        if (confirm('Bạn có chắc chắn muốn xóa mã QR này?')) {
+            try {
+                const response = await fetch(`/api/QrApi/DeleteQR?id=${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Xóa thất bại');
+                }
+            } catch (error) {
+                alert('Lỗi khi xóa QR Code');
+            }
+        }
+    }
+
+    // ========== TÌM KIẾM ==========
+    document.getElementById('searchInput')?.addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const cards = document.querySelectorAll('.qr-card');
+
+        cards.forEach(card => {
+            const name = card.getAttribute('data-name')?.toLowerCase() || '';
+            const location = card.getAttribute('data-location')?.toLowerCase() || '';
+            if (name.includes(searchText) || location.includes(searchText)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // ========== LÀM MỚI ==========
+    document.getElementById('refreshBtn')?.addEventListener('click', function() {
+        location.reload();
+    });
+
+    // ========== ĐÓNG MODAL KHI CLICK RA NGOÀI ==========
+    document.getElementById('viewModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeViewModal();
+    });
+
+    document.getElementById('editModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
+
+    // ESC để đóng modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (document.getElementById('viewModal').classList.contains('show')) closeViewModal();
+            if (document.getElementById('editModal').classList.contains('show')) closeEditModal();
+        }
+    });
+</script>
