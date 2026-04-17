@@ -11,7 +11,7 @@ builder.WebHost.UseUrls($"http://*:{port}");
 // ============================================
 // 1. CẤU HÌNH SERVICES (TRƯỚC KHI BUILD)
 // ============================================
-
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 // Add services
 builder.Services.AddRazorPages();
 builder.Services.AddDistributedMemoryCache();
@@ -118,11 +118,11 @@ app.MapControllers();
 // ============================================
 
 var localIP = GetLocalIPAddress();
+port = Environment.GetEnvironmentVariable("PORT") ?? "5225";
+
 var urls = new[]
 {
-    $"http://localhost:5225",
-    $"http://127.0.0.1:5225",
-    $"http://{localIP}:5225"
+    $"http://0.0.0.0:{port}"
 };
 
 app.Run();
