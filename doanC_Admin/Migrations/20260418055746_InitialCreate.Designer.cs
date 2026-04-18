@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using doanC_Admin.Models;
 
@@ -11,9 +12,11 @@ using doanC_Admin.Models;
 namespace doanC_Admin.Migrations
 {
     [DbContext(typeof(FoodStreetGuideDBContext))]
-    partial class FoodStreetGuideDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260418055746_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

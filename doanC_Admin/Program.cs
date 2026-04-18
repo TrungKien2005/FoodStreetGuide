@@ -3,6 +3,7 @@ using doanC_Admin.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using doanC_Admin.Hubs;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,10 +45,101 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// ============================================
+// ✅ CẤU HÌNH DATABASE THEO MÔI TRƯỜNG
+// ============================================
+var isProduction = builder.Environment.IsProduction();
+
+if (isProduction)
+{
+    builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+}
+else
+{
+    builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+}
 
 var app = builder.Build();
+
+// ============================================
+// AUTO SEED DATA (CHỈ 1 LẦN)
+// ============================================
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<FoodStreetGuideDBContext>();
+
+    try
+    {
+        // Kiểm tra kết nối
+        dbContext.Database.CanConnect();
+        Console.WriteLine("✅ Database connected!");
+
+        // Tạo bảng nếu chưa có (dùng SQL thuần)
+        await dbContext.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS ""AdminUsers"" (
+                ""AdminId"" SERIAL PRIMARY KEY,
+                ""Username"" VARCHAR(50) NOT NULL UNIQUE,
+                ""PasswordHash"" VARCHAR(255) NOT NULL,
+                ""FullName"" VARCHAR(100),
+                ""Email"" VARCHAR(100),
+                ""Role"" VARCHAR(20) DEFAULT 'Admin',
+                ""IsActive"" BOOLEAN DEFAULT TRUE,
+                ""LastLogin"" TIMESTAMP,
+                ""LastLogout"" TIMESTAMP,
+                ""CreatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ""UpdatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        ");
+
+        // Kiểm tra và thêm dữ liệu
+        var adminCount = dbContext.AdminUsers.Count();
+
+        if (adminCount == 0)
+        {
+            Console.WriteLine("🌱 Seeding data...");
+
+            dbContext.AdminUsers.AddRange(
+                new AdminUser
+                {
+                    Username = "admin",
+                    PasswordHash = "123456",
+                    FullName = "Quản trị viên hệ thống",
+                    Email = "admin@foodstreet.com",
+                    Role = "Admin",
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new AdminUser
+                {
+                    Username = "manager",
+                    PasswordHash = "123456",
+                    FullName = "Chủ quán Vĩnh Khánh",
+                    Email = "manager@foodstreet.com",
+                    Role = "Manager",
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                }
+            );
+
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine("✅ Seed data completed!");
+        }
+        else
+        {
+            Console.WriteLine($"✅ Database already has {adminCount} admin users.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Database error: {ex.Message}");
+    }
+}
+
+Console.WriteLine("✅ Database initialization complete!");
 
 // ============================================
 // 2. PIPELINE
@@ -59,40 +151,28 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// ❌ KHÔNG dùng HTTPS redirect trên Render
-// app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
-// ============================================
-// ✅ XỬ LÝ PATH 2 CHẾ ĐỘ (LOCAL + RENDER)
-// ============================================
 
 var currentDirectory = Directory.GetCurrentDirectory();
 
 string mauiImagesPath;
 string qrImagesPath;
 
-// 👉 Nếu chạy LOCAL (có folder FoodStreetGuide)
 if (Directory.Exists(Path.Combine(currentDirectory, "FoodStreetGuide")))
 {
     var solutionDirectory = Directory.GetParent(currentDirectory)?.FullName ?? currentDirectory;
-
     mauiImagesPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "Images");
     qrImagesPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "qr");
 }
 else
 {
-    // 👉 Nếu chạy trên Render
     mauiImagesPath = Path.Combine(currentDirectory, "wwwroot", "images");
     qrImagesPath = Path.Combine(currentDirectory, "wwwroot", "qr");
 }
 
-// Tạo folder nếu chưa có
 Directory.CreateDirectory(mauiImagesPath);
 Directory.CreateDirectory(qrImagesPath);
 
-// Serve images
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(mauiImagesPath),
@@ -105,10 +185,6 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/qr"
 });
 
-// ============================================
-// ROUTING
-// ============================================
-
 app.UseRouting();
 app.UseSession();
 app.UseCors("AllowAll");
@@ -118,15 +194,7 @@ app.MapHub<DashboardHub>("/dashboardHub");
 app.MapRazorPages();
 app.MapControllers();
 
-// ============================================
-// RUN
-// ============================================
-
 app.Run();
-
-// ============================================
-// HELPER
-// ============================================
 
 static string GetLocalIPAddress()
 {
@@ -134,7 +202,6 @@ static string GetLocalIPAddress()
     {
         var hostName = Dns.GetHostName();
         var hostEntry = Dns.GetHostEntry(hostName);
-
         foreach (var ip in hostEntry.AddressList)
         {
             if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
