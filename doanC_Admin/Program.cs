@@ -2,6 +2,7 @@
 using doanC_Admin.Filters;
 using doanC_Admin.Hubs;
 using doanC_Admin.Models;
+using doanC_Admin.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
@@ -30,6 +31,9 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+// register device cleanup hosted service
+builder.Services.AddHostedService<DeviceCleanupService>();
 
 builder.Services.AddCors(options =>
 {

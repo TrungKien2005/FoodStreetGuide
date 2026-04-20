@@ -8,6 +8,7 @@ using doanC_.Config;
 using doanC_.Models;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
+using System.Threading;
 
 namespace doanC_.Services.LocationTracking
 {
@@ -20,7 +21,8 @@ namespace doanC_.Services.LocationTracking
         private readonly string _apiBaseUrl;
         private string _deviceUniqueId;
         private Timer _heartbeatTimer;
-        private const int HEARTBEAT_INTERVAL_SECONDS = 30;
+        // Reduced heartbeat interval for faster server updates (10s)
+        private const int HEARTBEAT_INTERVAL_SECONDS = 10;
 
         public DeviceTrackingService()
         {
@@ -138,8 +140,71 @@ namespace doanC_.Services.LocationTracking
         /// </summary>
         public void StopHeartbeat()
         {
-            _heartbeatTimer?.Dispose();
-            _heartbeatTimer = null;
+            try
+            {
+                _heartbeatTimer?.Dispose();
+                _heartbeatTimer = null;
+
+                // Fire-and-forget notify server that this device is offline
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SetOfflineAsync();
+                        Debug.WriteLine("[DeviceTracking] 📴 SetOffline called from StopHeartbeat");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[DeviceTracking] ❌ SetOffline error: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DeviceTracking] ❌ StopHeartbeat error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gọi API để đánh dấu thiết bị offline (khi app bị tắt hoặc vào background lâu dài)
+        /// </summary>
+        public async Task SetOfflineAsync()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_deviceUniqueId))
+                {
+                    _deviceUniqueId = await GetOrCreateDeviceIdAsync();
+                }
+
+                var payload = new
+                {
+                    deviceUniqueId = _deviceUniqueId
+                };
+
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // short timeout per-request to avoid long blocking
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/SetOffline", content, cts.Token);
+                if (response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine("[DeviceTracking] ✅ Server notified: device set offline");
+                }
+                else
+                {
+                    Debug.WriteLine($"[DeviceTracking] ⚠️ SetOffline failed: {response.StatusCode}");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("[DeviceTracking] ⚠️ SetOffline request timed out");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DeviceTracking] ❌ SetOffline error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -187,6 +252,12 @@ namespace doanC_.Services.LocationTracking
                 LastLocationLat = latitude,
                 LastLocationLng = longitude
             };
+        }
+
+        // Alias for older callers
+        public async Task UntrackAsync()
+        {
+            await SetOfflineAsync();
         }
     }
 
