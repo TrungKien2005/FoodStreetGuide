@@ -41,7 +41,7 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 		<ResizetizerErrorOnInvalidFilename>false</ResizetizerErrorOnInvalidFilename>
 		<AndroidManifestPlaceholders>
-			GOOGLE_MAPS_API_KEY=$(GoogleMapsApiKey)
+			google_maps_key=$(GoogleMapsApiKey)
 		</AndroidManifestPlaceholders>
 	</PropertyGroup>
 

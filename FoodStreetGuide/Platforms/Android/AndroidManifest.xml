@@ -8,7 +8,7 @@
 
 		<meta-data
 			android:name="com.google.android.geo.API_KEY"
-			android:value="AIzaSyDIV0Lz6RG3_nm78XaWhiAyH3sgUe7aqmU" />
+			android:value="${google_maps_key}" />
 
 	</application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
