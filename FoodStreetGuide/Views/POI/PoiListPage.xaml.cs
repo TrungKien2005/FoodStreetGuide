@@ -12,22 +12,22 @@ using doanC_.Services.LocationTracking;
 
 namespace doanC_.Views
 {
-  public partial class PoiListPage : ContentPage
+    public partial class PoiListPage : ContentPage
     {
         private ApiService _apiService;
-      private LocationService _locationService;
-     private HybridTranslationService _translationService;
+        private LocationService _locationService;
+        private HybridTranslationService _translationService;
         private TTSService _ttsService;
-  private SQLiteService _sqliteService;
-     private List<LocationPoint> _allLocationPoints;
+        private SQLiteService _sqliteService;
+        private List<LocationPoint> _allLocationPoints;
         private Location _currentLocation;
-   private string _currentCategory = "Tất cả";
+        private string _currentCategory = "Tất cả";
         private string _currentSearchText = string.Empty;
         private string _imageBaseUrl;
-      private string _currentLanguage = "vi";
+        private string _currentLanguage = "vi";
 
         // Binding properties cho đa ngôn ngữ
-   public string PageTitle { get; set; } = "Địa điểm";
+        public string PageTitle { get; set; } = "Địa điểm";
         public string PageSubtitle { get; set; } = "Khám phá các địa điểm thú vị";
         public string SearchPlaceholder { get; set; } = "Tìm kiếm địa điểm...";
         private DeviceTrackingService? _deviceTrackingService;
@@ -51,142 +51,142 @@ namespace doanC_.Views
             { "Bar - Pub", "🍺" }
         };
 
-     public PoiListPage()
+        public PoiListPage()
         {
             InitializeComponent();
             BindingContext = this;
 
-          _apiService = new ApiService();
+            _apiService = new ApiService();
             _sqliteService = ServiceHelper.GetService<SQLiteService>();
             _translationService = new HybridTranslationService();
-      _ttsService = ServiceHelper.GetService<TTSService>();
-         _locationService = new LocationService();
+            _ttsService = ServiceHelper.GetService<TTSService>();
+            _locationService = new LocationService();
             _deviceTrackingService = ServiceHelper.GetService<DeviceTrackingService>();
             _currentLanguage = Preferences.Get("AppLanguage", "vi");
             _translationService?.SetLanguage(_currentLanguage);
             AppResources.SetLanguage(_currentLanguage);
-   UpdateUILanguage();
-   Debug.WriteLine($"[PoiListPage] 🌐 Current app language: {_currentLanguage}");
+            UpdateUILanguage();
+            Debug.WriteLine($"[PoiListPage] 🌐 Current app language: {_currentLanguage}");
 
-     _imageBaseUrl = ApiConfig.GetBaseUrl().Replace("/api/LocationApi", "/images");
-      Debug.WriteLine($"[PoiListPage] 🖼️ Image Base URL: {_imageBaseUrl}");
+            _imageBaseUrl = ApiConfig.GetBaseUrl().Replace("/api/LocationApi", "/images");
+            Debug.WriteLine($"[PoiListPage] 🖼️ Image Base URL: {_imageBaseUrl}");
 
             // ✅ Lắng nghe sự kiện đổi ngôn ngữ từ Settings
             MessagingCenter.Subscribe<SettingsPage, string>(this, "LanguageChanged", async (sender, languageCode) =>
             {
-        Debug.WriteLine($"[PoiListPage] 📢 Language changed to: {languageCode}");
-      _currentLanguage = languageCode;
-    _translationService?.SetLanguage(_currentLanguage);
-      _translationService?.ClearCache();
-        AppResources.SetLanguage(_currentLanguage);
+                Debug.WriteLine($"[PoiListPage] 📢 Language changed to: {languageCode}");
+                _currentLanguage = languageCode;
+                _translationService?.SetLanguage(_currentLanguage);
+                _translationService?.ClearCache();
+                AppResources.SetLanguage(_currentLanguage);
 
-  UpdateUILanguage();
-      await FilterAndDisplayLocationsAsync();
-     });
+                UpdateUILanguage();
+                await FilterAndDisplayLocationsAsync();
+            });
 
-          LoadData();
-       _ = GetCurrentLocationAndCalculateDistance();
+            LoadData();
+            _ = GetCurrentLocationAndCalculateDistance();
         }
 
         private string GetImageUrl(string? imageName)
-{
-    // Nếu không có tên ảnh, trả về ảnh mặc định
-    if (string.IsNullOrEmpty(imageName))
-    {
-        Debug.WriteLine("[PoiListPage] ⚠️ No image name, using default");
-        return "poi_default.png";
-    }
+        {
+            // Nếu không có tên ảnh, trả về ảnh mặc định
+            if (string.IsNullOrEmpty(imageName))
+            {
+                Debug.WriteLine("[PoiListPage] ⚠️ No image name, using default");
+                return "poi_default.png";
+            }
 
-    // Tạo URL đầy đủ
-    var fullUrl = $"{_imageBaseUrl}/{imageName}";
-    Debug.WriteLine($"[PoiListPage] 🖼️ Image URL: {fullUrl}");
-    
-    // Luôn trả về URL (Fallback sẽ xử lý khi ảnh lỗi)
-    return fullUrl;
-}
+            // Tạo URL đầy đủ
+            var fullUrl = $"{_imageBaseUrl}/{imageName}";
+            Debug.WriteLine($"[PoiListPage] 🖼️ Image URL: {fullUrl}");
+
+            // Luôn trả về URL (Fallback sẽ xử lý khi ảnh lỗi)
+            return fullUrl;
+        }
 
         private async void LoadData()
-  {
-  try
-   {
-    loadingIndicator.IsVisible = true;
-  loadingIndicator.IsRunning = true;
-
-        _allLocationPoints = await _sqliteService.GetAllLocationPointsAsync();
-
-         if (_allLocationPoints != null && _allLocationPoints.Any())
+        {
+            try
             {
-         Debug.WriteLine($"[PoiListPage] ✅ Loaded {_allLocationPoints.Count} POI items from SQLite");
+                loadingIndicator.IsVisible = true;
+                loadingIndicator.IsRunning = true;
 
-             foreach (var poi in _allLocationPoints)
-               {
-     Debug.WriteLine($"[PoiListPage] 📍 POI: {poi.Name}, Image: {poi.Image ?? "NULL"}");
-      }
+                _allLocationPoints = await _sqliteService.GetAllLocationPointsAsync();
 
-  LoadCategoryFilters();
-      await FilterAndDisplayLocationsAsync();
-       }
-  else
-    {
-           Debug.WriteLine("[PoiListPage] ⚠️ No data in SQLite, trying API...");
-            await LoadDataFromApiOnline();
-          }
-}
+                if (_allLocationPoints != null && _allLocationPoints.Any())
+                {
+                    Debug.WriteLine($"[PoiListPage] ✅ Loaded {_allLocationPoints.Count} POI items from SQLite");
+
+                    foreach (var poi in _allLocationPoints)
+                    {
+                        Debug.WriteLine($"[PoiListPage] 📍 POI: {poi.Name}, Image: {poi.Image ?? "NULL"}");
+                    }
+
+                    LoadCategoryFilters();
+                    await FilterAndDisplayLocationsAsync();
+                }
+                else
+                {
+                    Debug.WriteLine("[PoiListPage] ⚠️ No data in SQLite, trying API...");
+                    await LoadDataFromApiOnline();
+                }
+            }
             catch (Exception ex)
-   {
-      Debug.WriteLine($"[PoiListPage] ❌ Error loading data: {ex.Message}");
-  }
+            {
+                Debug.WriteLine($"[PoiListPage] ❌ Error loading data: {ex.Message}");
+            }
             finally
             {
                 loadingIndicator.IsVisible = false;
-          loadingIndicator.IsRunning = false;
+                loadingIndicator.IsRunning = false;
             }
         }
 
         private async Task LoadDataFromApiOnline()
         {
-   try
-    {
-          var onlineData = await _apiService.GetLocationPointsAsync();
-       if (onlineData != null && onlineData.Any())
-       {
-  foreach (var poi in onlineData)
-    {
-           await _sqliteService.AddLocationPointAsync(poi);
-      }
-        _allLocationPoints = onlineData;
+            try
+            {
+                var onlineData = await _apiService.GetLocationPointsAsync();
+                if (onlineData != null && onlineData.Any())
+                {
+                    foreach (var poi in onlineData)
+                    {
+                        await _sqliteService.AddLocationPointAsync(poi);
+                    }
+                    _allLocationPoints = onlineData;
 
-          LoadCategoryFilters();
-           await FilterAndDisplayLocationsAsync();
-         Debug.WriteLine($"[PoiListPage] ✅ Loaded {onlineData.Count} POI items from API");
+                    LoadCategoryFilters();
+                    await FilterAndDisplayLocationsAsync();
+                    Debug.WriteLine($"[PoiListPage] ✅ Loaded {onlineData.Count} POI items from API");
                 }
-     }
+            }
             catch (Exception ex)
-    {
-        Debug.WriteLine($"[PoiListPage] ❌ API error: {ex.Message}");
-  }
+            {
+                Debug.WriteLine($"[PoiListPage] ❌ API error: {ex.Message}");
+            }
         }
 
         private void LoadCategoryFilters()
-  {
+        {
             try
-       {
-   if (_allLocationPoints == null) return;
+            {
+                if (_allLocationPoints == null) return;
 
-         var categories = _allLocationPoints
-       .Where(p => !string.IsNullOrEmpty(p.Category))
-       .Select(p => p.Category!)
-.Distinct()
-         .OrderBy(c => c)
-              .ToList();
+                var categories = _allLocationPoints
+              .Where(p => !string.IsNullOrEmpty(p.Category))
+              .Select(p => p.Category!)
+       .Distinct()
+                .OrderBy(c => c)
+                     .ToList();
 
-  var allCategories = new List<string> { "Tất cả" };
+                var allCategories = new List<string> { "Tất cả" };
                 allCategories.AddRange(categories);
-     UpdateCategoryButtons(allCategories);
+                UpdateCategoryButtons(allCategories);
             }
-  catch (Exception ex)
-         {
-             Debug.WriteLine($"[PoiListPage] Load categories error: {ex.Message}");
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PoiListPage] Load categories error: {ex.Message}");
             }
         }
 
@@ -277,11 +277,11 @@ namespace doanC_.Views
 
         private async void OnSearchTextChanged(object sender, TextChangedEventArgs e)
         {
-      _currentSearchText = e.NewTextValue ?? string.Empty;
-     await FilterAndDisplayLocationsAsync();
+            _currentSearchText = e.NewTextValue ?? string.Empty;
+            await FilterAndDisplayLocationsAsync();
         }
 
-  private async Task FilterAndDisplayLocationsAsync()
+        private async Task FilterAndDisplayLocationsAsync()
         {
             if (_allLocationPoints == null) return;
 
@@ -289,123 +289,123 @@ namespace doanC_.Views
 
             if (_currentCategory != "Tất cả")
             {
-  filtered = filtered.Where(p => p.Category == _currentCategory);
+                filtered = filtered.Where(p => p.Category == _currentCategory);
             }
 
-      if (!string.IsNullOrWhiteSpace(_currentSearchText))
-    {
-      filtered = filtered.Where(p =>
-  (p.Name?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true) ||
-       (p.Description?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true) ||
-          (p.Address?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true));
-     }
+            if (!string.IsNullOrWhiteSpace(_currentSearchText))
+            {
+                filtered = filtered.Where(p =>
+            (p.Name?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true) ||
+                 (p.Description?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true) ||
+                    (p.Address?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true));
+            }
 
             var resultList = filtered.ToList();
             var poiItems = new List<PoiItem>();
 
-     // ✅ OPTIMIZATION: Batch translate all text at once instead of one-by-one
-         if (_currentLanguage != "vi" && _translationService != null)
-   {
-   var textsToTranslate = new List<string>();
+            // ✅ OPTIMIZATION: Batch translate all text at once instead of one-by-one
+            if (_currentLanguage != "vi" && _translationService != null)
+            {
+                var textsToTranslate = new List<string>();
                 foreach (var location in resultList)
-         {
-    if (!string.IsNullOrWhiteSpace(location.Name))
-    textsToTranslate.Add(location.Name);
-        if (!string.IsNullOrWhiteSpace(location.Description))
-               textsToTranslate.Add(location.Description);
-   if (!string.IsNullOrWhiteSpace(location.Address))
- textsToTranslate.Add(location.Address);
-      }
+                {
+                    if (!string.IsNullOrWhiteSpace(location.Name))
+                        textsToTranslate.Add(location.Name);
+                    if (!string.IsNullOrWhiteSpace(location.Description))
+                        textsToTranslate.Add(location.Description);
+                    if (!string.IsNullOrWhiteSpace(location.Address))
+                        textsToTranslate.Add(location.Address);
+                }
 
-   // Batch translate
+                // Batch translate
                 var translations = await _translationService.TranslateBatchAsync(textsToTranslate, _currentLanguage);
-        Debug.WriteLine($"[PoiListPage] ✅ Batch translated {translations.Count} items");
+                Debug.WriteLine($"[PoiListPage] ✅ Batch translated {translations.Count} items");
 
-         foreach (var location in resultList)
-     {
-      var originalName = location.Name ?? string.Empty;
-         var originalDescription = location.Description ?? string.Empty;
-        var originalAddress = location.Address ?? string.Empty;
- var originalCategory = location.Category ?? string.Empty;
+                foreach (var location in resultList)
+                {
+                    var originalName = location.Name ?? string.Empty;
+                    var originalDescription = location.Description ?? string.Empty;
+                    var originalAddress = location.Address ?? string.Empty;
+                    var originalCategory = location.Category ?? string.Empty;
 
-    var displayName = translations.TryGetValue(originalName, out var transName) ? transName : originalName;
-      var displayDescription = translations.TryGetValue(originalDescription, out var transDesc) ? transDesc : originalDescription;
-         var displayAddress = translations.TryGetValue(originalAddress, out var transAddr) ? transAddr : originalAddress;
+                    var displayName = translations.TryGetValue(originalName, out var transName) ? transName : originalName;
+                    var displayDescription = translations.TryGetValue(originalDescription, out var transDesc) ? transDesc : originalDescription;
+                    var displayAddress = translations.TryGetValue(originalAddress, out var transAddr) ? transAddr : originalAddress;
 
-         poiItems.Add(new PoiItem
-        {
-         PointId = location.PointId,
-         Name = displayName,
-Description = displayDescription,
-             Distance = _currentLocation != null
-                ? (int)CalculateDistance(
-               _currentLocation.Latitude,
-      _currentLocation.Longitude,
-        location.Latitude,
-    location.Longitude)
-    : 0,
-             ImageUrl = GetImageUrl(location.Image),
-          Category = originalCategory,
-     Rating = location.Rating ?? 0,
-   ReviewCount = location.ReviewCount ?? 0,
-      Latitude = location.Latitude,
-  Longitude = location.Longitude
+                    poiItems.Add(new PoiItem
+                    {
+                        PointId = location.PointId,
+                        Name = displayName,
+                        Description = displayDescription,
+                        Distance = _currentLocation != null
+                           ? (int)CalculateDistance(
+                          _currentLocation.Latitude,
+                 _currentLocation.Longitude,
+                   location.Latitude,
+               location.Longitude)
+               : 0,
+                        ImageUrl = GetImageUrl(location.Image),
+                        Category = originalCategory,
+                        Rating = location.Rating ?? 0,
+                        ReviewCount = location.ReviewCount ?? 0,
+                        Latitude = location.Latitude,
+                        Longitude = location.Longitude
                     });
                 }
-      }
-       else
-       {
-              // Language is Vietnamese or no translation service - use original text
+            }
+            else
+            {
+                // Language is Vietnamese or no translation service - use original text
                 foreach (var location in resultList)
-     {
-     poiItems.Add(new PoiItem
-               {
-   PointId = location.PointId,
-    Name = location.Name ?? string.Empty,
-            Description = location.Description ?? string.Empty,
-   Distance = _currentLocation != null
-               ? (int)CalculateDistance(
-  _currentLocation.Latitude,
-      _currentLocation.Longitude,
-        location.Latitude,
- location.Longitude)
-       : 0,
-         ImageUrl = GetImageUrl(location.Image),
-     Category = location.Category ?? string.Empty,
-          Rating = location.Rating ?? 0,
-  ReviewCount = location.ReviewCount ?? 0,
-             Latitude = location.Latitude,
-  Longitude = location.Longitude
-    });
-  }
+                {
+                    poiItems.Add(new PoiItem
+                    {
+                        PointId = location.PointId,
+                        Name = location.Name ?? string.Empty,
+                        Description = location.Description ?? string.Empty,
+                        Distance = _currentLocation != null
+                              ? (int)CalculateDistance(
+                 _currentLocation.Latitude,
+                     _currentLocation.Longitude,
+                       location.Latitude,
+                location.Longitude)
+                      : 0,
+                        ImageUrl = GetImageUrl(location.Image),
+                        Category = location.Category ?? string.Empty,
+                        Rating = location.Rating ?? 0,
+                        ReviewCount = location.ReviewCount ?? 0,
+                        Latitude = location.Latitude,
+                        Longitude = location.Longitude
+                    });
+                }
             }
 
-MainThread.BeginInvokeOnMainThread(() =>
-    {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
                 PoiCollection.ItemsSource = poiItems;
-            Debug.WriteLine($"[PoiListPage] 📋 Displaying {poiItems.Count} items");
+                Debug.WriteLine($"[PoiListPage] 📋 Displaying {poiItems.Count} items");
 
-        if (poiItems.Any())
-         {
-       Debug.WriteLine($"[PoiListPage] 🖼️ First item image URL: {poiItems.First().ImageUrl}");
-     }
-         });
-    }
+                if (poiItems.Any())
+                {
+                    Debug.WriteLine($"[PoiListPage] 🖼️ First item image URL: {poiItems.First().ImageUrl}");
+                }
+            });
+        }
 
         private async Task GetCurrentLocationAndCalculateDistance()
         {
-  try
-        {
-_currentLocation = await _locationService.GetCurrentLocationAsync();
-      if (_currentLocation != null)
-    {
-           await FilterAndDisplayLocationsAsync();
-   }
-         }
-     catch (Exception ex)
-        {
-             Debug.WriteLine($"[PoiListPage] Error getting location: {ex.Message}");
-     }
+            try
+            {
+                _currentLocation = await _locationService.GetCurrentLocationAsync();
+                if (_currentLocation != null)
+                {
+                    await FilterAndDisplayLocationsAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PoiListPage] Error getting location: {ex.Message}");
+            }
         }
 
         private async void OnPoiTapped(object sender, TappedEventArgs e)
@@ -428,22 +428,22 @@ _currentLocation = await _locationService.GetCurrentLocationAsync();
         }
 
         private async void OnPlayButtonTapped(object sender, EventArgs e)
-     {
-            try
         {
-         var button = sender as Button;
-   if (button == null) return;
+            try
+            {
+                var button = sender as Button;
+                if (button == null) return;
 
-     var frame = button.Parent?.Parent?.Parent as Frame;
-     if (frame?.BindingContext is PoiItem selectedPoi)
-      {
-   await HandlePlayButton(selectedPoi);
+                var frame = button.Parent?.Parent?.Parent as Frame;
+                if (frame?.BindingContext is PoiItem selectedPoi)
+                {
+                    await HandlePlayButton(selectedPoi);
                 }
- }
-          catch (Exception ex)
-     {
-        Debug.WriteLine($"[PoiListPage] Play button error: {ex.Message}");
-  }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PoiListPage] Play button error: {ex.Message}");
+            }
         }
 
         private async Task HandlePlayButton(PoiItem selectedPoi)
@@ -493,29 +493,29 @@ _currentLocation = await _locationService.GetCurrentLocationAsync();
 
         private string GetLanguageCodeForTTS(string languageCode)
         {
-  return languageCode switch
- {
-         "en" => "en-US",
-         "vi" => "vi-VN",
-       "fr" => "fr-FR",
+            return languageCode switch
+            {
+                "en" => "en-US",
+                "vi" => "vi-VN",
+                "fr" => "fr-FR",
                 "es" => "es-ES",
-       "zh" => "zh-CN",
-  "ja" => "ja-JP",
-  "ko" => "ko-KR",
- _ => "vi-VN"
+                "zh" => "zh-CN",
+                "ja" => "ja-JP",
+                "ko" => "ko-KR",
+                _ => "vi-VN"
             };
         }
 
-   private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
-      {
- double R = 6371000;
-      double dLat = ToRad(lat2 - lat1);
-      double dLon = ToRad(lon2 - lon1);
-      double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-      Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) *
-           Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-          double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-   return R * c;
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            double R = 6371000;
+            double dLat = ToRad(lat2 - lat1);
+            double dLon = ToRad(lon2 - lon1);
+            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+            Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) *
+                 Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
         }
 
         private double ToRad(double val) => val * Math.PI / 180;
@@ -537,46 +537,46 @@ _currentLocation = await _locationService.GetCurrentLocationAsync();
         }
         protected override async void OnAppearing()
         {
-      base.OnAppearing();
+            base.OnAppearing();
             TrackActivity("ViewList");
             // Kiểm tra ngôn ngữ thay đổi khi quay lại trang
             var currentLanguage = Preferences.Get("AppLanguage", "vi");
             if (currentLanguage != _currentLanguage)
             {
-      _currentLanguage = currentLanguage;
-        _translationService?.SetLanguage(_currentLanguage);
-     _translationService?.ClearCache();
-        await FilterAndDisplayLocationsAsync();
-   }
+                _currentLanguage = currentLanguage;
+                _translationService?.SetLanguage(_currentLanguage);
+                _translationService?.ClearCache();
+                await FilterAndDisplayLocationsAsync();
+            }
 
-    // Cập nhật khoảng cách nếu vị trí thay đổi
+            // Cập nhật khoảng cách nếu vị trí thay đổi
             await GetCurrentLocationAndCalculateDistance();
-      }
+        }
 
-  private void UpdateUILanguage()
+        private void UpdateUILanguage()
         {
             MainThread.BeginInvokeOnMainThread(() =>
-          {
-       PageTitle = AppResources.GetString("PoiListTitle");
-PageSubtitle = AppResources.GetString("PoiListSubtitle");
-     SearchPlaceholder = AppResources.GetString("PoiSearchPlaceholder");
+            {
+                PageTitle = AppResources.GetString("PoiListTitle");
+                PageSubtitle = AppResources.GetString("PoiListSubtitle");
+                SearchPlaceholder = AppResources.GetString("PoiSearchPlaceholder");
 
-       OnPropertyChanged(nameof(PageTitle));
-  OnPropertyChanged(nameof(PageSubtitle));
-    OnPropertyChanged(nameof(SearchPlaceholder));
-   });
+                OnPropertyChanged(nameof(PageTitle));
+                OnPropertyChanged(nameof(PageSubtitle));
+                OnPropertyChanged(nameof(SearchPlaceholder));
+            });
         }
     }
 
     public class PoiItem
     {
         public int PointId { get; set; }
-    public string Name { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int Distance { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
- public double Rating { get; set; }
+        public double Rating { get; set; }
         public int ReviewCount { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }

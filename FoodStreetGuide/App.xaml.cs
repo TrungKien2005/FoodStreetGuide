@@ -3,17 +3,15 @@ using doanC_.Models;
 using doanC_.Services.Api;
 using doanC_.Services.Data;
 using doanC_.Services.Localization;
-using doanC_.Services.LocationTracking;
+using doanC_.Services.LocationTracking;  // 👈 THÊM DÒNG NÀY
 using System.Diagnostics;
 using Microsoft.Maui.Storage;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.ApplicationModel.Communication;
 
 namespace doanC_
 {
     public partial class App : Application
     {
-        private DeviceTrackingService _deviceTrackingService;
+        private DeviceTrackingService _deviceTrackingService;  // 👈 THÊM DÒNG NÀY
 
         public App()
         {
@@ -40,36 +38,20 @@ namespace doanC_
                 MainPage = new AppShell();
             }
         }
-        // 👇 THÊM METHOD NÀY VÀO ĐÂY
-        private async Task RequestPermissionsAsync()
-        {
-            try
-            {
-                // Yêu cầu quyền truy cập vị trí
-                var locationStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
-                Debug.WriteLine($"[App] 📍 Location permission: {locationStatus}");
 
-                // Yêu cầu quyền camera (cho QR)
-                var cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
-                Debug.WriteLine($"[App] 📷 Camera permission: {cameraStatus}");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[App] ❌ Permission error: {ex.Message}");
-            }
-        }
         protected override async void OnStart()
         {
             base.OnStart();
-            await RequestPermissionsAsync();
 
             try
             {
                 // ✅ KHỞI TẠO SQLITE
                 var databaseService = ServiceHelper.GetService<SQLiteService>();
-                databaseService?.DeleteDatabase();
-                await databaseService.InitializeAsync();
-                Debug.WriteLine("[App] ✅ SQLite database initialized");
+                if (databaseService != null)
+                {
+                    await databaseService.InitializeAsync();
+                    Debug.WriteLine("[App] ✅ SQLite database initialized");
+                }
 
                 // ✅ KHỞI TẠO DEVICE TRACKING (THÊM VÀO ĐÂY)
                 if (_deviceTrackingService != null)

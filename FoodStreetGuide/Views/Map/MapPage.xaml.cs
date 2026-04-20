@@ -31,8 +31,8 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     private bool _isFirstLoad = true;
     private CancellationTokenSource _gpsTokenSource;
     private string _currentLanguage = "vi";
-  private string _lastLanguage = "vi";
-  private bool _isTranslating = false;
+    private string _lastLanguage = "vi";
+    private bool _isTranslating = false;
 
     // Binding properties
 
@@ -96,36 +96,36 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         InitializeComponent();
         _sqliteService = ServiceHelper.GetService<SQLiteService>();
-_geoFenceService = GeoFenceService.Instance;
-   _locationService = ServiceHelper.GetService<LocationService>();
+        _geoFenceService = GeoFenceService.Instance;
+        _locationService = ServiceHelper.GetService<LocationService>();
         _translationService = new HybridTranslationService();
 
         LoadRadiusFromPreferences();
         LoadSavedLanguage();
- UpdateRadiusDisplay();
+        UpdateRadiusDisplay();
         UpdateUILanguage();
-   InitializeMap();
+        InitializeMap();
 
-   MessagingCenter.Subscribe<SettingsPage, string>(this, "LanguageChanged", async (sender, languageCode) =>
+        MessagingCenter.Subscribe<SettingsPage, string>(this, "LanguageChanged", async (sender, languageCode) =>
         {
-    Debug.WriteLine($"[MapPage] 🔔 Language changed to: {languageCode}");
- _currentLanguage = languageCode;
-        _translationService?.SetLanguage(_currentLanguage);
-       _translationService?.ClearCache();
+            Debug.WriteLine($"[MapPage] 🔔 Language changed to: {languageCode}");
+            _currentLanguage = languageCode;
+            _translationService?.SetLanguage(_currentLanguage);
+            _translationService?.ClearCache();
             RefreshUITexts();
-    await TranslateAndDisplayPoints();
- if (_currentSelectedPoi != null)
-        {
- UpdateSelectedPoiTexts(_currentSelectedPoi);
+            await TranslateAndDisplayPoints();
+            if (_currentSelectedPoi != null)
+            {
+                UpdateSelectedPoiTexts(_currentSelectedPoi);
             }
-  });
+        });
     }
 
     private void LoadSavedLanguage()
     {
-   _currentLanguage = Preferences.Get("AppLanguage", "vi");
-  _lastLanguage = _currentLanguage;
-    Debug.WriteLine($"[MapPage] Loaded language: {_currentLanguage}");
+        _currentLanguage = Preferences.Get("AppLanguage", "vi");
+        _lastLanguage = _currentLanguage;
+        Debug.WriteLine($"[MapPage] Loaded language: {_currentLanguage}");
         _translationService?.SetLanguage(_currentLanguage);
     }
 
@@ -166,12 +166,12 @@ _geoFenceService = GeoFenceService.Instance;
 
     private void UpdateRadiusDisplay()
     {
-    MainThread.BeginInvokeOnMainThread(() =>
-   {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
             var prefix = _currentLanguage == "vi" ? "Bán kính kích hoạt" : "Activation radius";
-  RadiusDisplayText = $"{prefix}: {_currentRadius}m";
+            RadiusDisplayText = $"{prefix}: {_currentRadius}m";
             OnPropertyChanged(nameof(RadiusDisplayText));
-   if (RadiusDisplayLabel != null) RadiusDisplayLabel.Text = RadiusDisplayText;
+            if (RadiusDisplayLabel != null) RadiusDisplayLabel.Text = RadiusDisplayText;
         });
     }
 
@@ -182,41 +182,41 @@ _geoFenceService = GeoFenceService.Instance;
 
     private async void InitializeMap()
     {
-      try
-    {
-        var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
-if (status != PermissionStatus.Granted)
-           status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
-
-  if (status == PermissionStatus.Granted)
+        try
         {
-var location = await Geolocation.GetLocationAsync(new GeolocationRequest
-                    {
-         DesiredAccuracy = GeolocationAccuracy.Medium,
-    Timeout = TimeSpan.FromSeconds(10)
-      });
+            var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+            if (status != PermissionStatus.Granted)
+                status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
 
-       if (location != null)
-     {
-                _currentLocation = location;
-      var mapSpan = MapSpan.FromCenterAndRadius(
-      new Location(location.Latitude, location.Longitude),
-               Distance.FromMeters(500));
-   map.MoveToRegion(mapSpan);
-          await LoadPoints();
-              CheckNearbyPoints();
-     }
-      StartContinuousGpsTracking();
+            if (status == PermissionStatus.Granted)
+            {
+                var location = await Geolocation.GetLocationAsync(new GeolocationRequest
+                {
+                    DesiredAccuracy = GeolocationAccuracy.Medium,
+                    Timeout = TimeSpan.FromSeconds(10)
+                });
+
+                if (location != null)
+                {
+                    _currentLocation = location;
+                    var mapSpan = MapSpan.FromCenterAndRadius(
+                    new Location(location.Latitude, location.Longitude),
+                             Distance.FromMeters(500));
+                    map.MoveToRegion(mapSpan);
+                    await LoadPoints();
+                    CheckNearbyPoints();
+                }
+                StartContinuousGpsTracking();
             }
             else
-      {
-     var errorMsg = _currentLanguage == "vi" ? "Không thể truy cập vị trí của bạn" : "Cannot access your location";
-    await DisplayAlert(_currentLanguage == "vi" ? "Lỗi" : "Error", errorMsg, "OK");
-    }
-     }
+            {
+                var errorMsg = _currentLanguage == "vi" ? "Không thể truy cập vị trí của bạn" : "Cannot access your location";
+                await DisplayAlert(_currentLanguage == "vi" ? "Lỗi" : "Error", errorMsg, "OK");
+            }
+        }
         catch (Exception ex)
         {
-   Debug.WriteLine($"[MapPage] InitializeMap error: {ex.Message}");
+            Debug.WriteLine($"[MapPage] InitializeMap error: {ex.Message}");
         }
     }
 
@@ -224,51 +224,51 @@ var location = await Geolocation.GetLocationAsync(new GeolocationRequest
     {
         try
         {
-     _gpsTokenSource?.Cancel();
-    _gpsTokenSource = new CancellationTokenSource();
+            _gpsTokenSource?.Cancel();
+            _gpsTokenSource = new CancellationTokenSource();
 
-  _locationService.StartTrackingAsync(location =>
+            _locationService.StartTrackingAsync(location =>
             {
-    MainThread.BeginInvokeOnMainThread(() =>
-              {
-          _currentLocation = location;
-    if (_isFirstLoad)
-          {
-             _isFirstLoad = false;
-  var mapSpan = MapSpan.FromCenterAndRadius(
-       new Location(location.Latitude, location.Longitude),
-          Distance.FromMeters(500));
-        map.MoveToRegion(mapSpan);
-}
-          CheckNearbyPoints();
-     });
-      });
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    _currentLocation = location;
+                    if (_isFirstLoad)
+                    {
+                        _isFirstLoad = false;
+                        var mapSpan = MapSpan.FromCenterAndRadius(
+                             new Location(location.Latitude, location.Longitude),
+                                Distance.FromMeters(500));
+                        map.MoveToRegion(mapSpan);
+                    }
+                    CheckNearbyPoints();
+                });
+            });
         }
         catch (Exception ex)
         {
-      Debug.WriteLine($"[MapPage] StartContinuousGpsTracking error: {ex.Message}");
-   }
+            Debug.WriteLine($"[MapPage] StartContinuousGpsTracking error: {ex.Message}");
+        }
     }
 
     private async Task LoadPoints()
     {
- try
+        try
         {
             _originalPoints = await _sqliteService.GetAllLocationPointsAsync();
             if (_originalPoints != null && _originalPoints.Any())
-      {
-   await TranslateAndDisplayPoints();
+            {
+                await TranslateAndDisplayPoints();
             }
-   else
-      {
-    var msg = _currentLanguage == "vi" ? "Không có điểm thuyết minh nào" : "No commentary points";
-        await DisplayAlert("Thông báo", msg, "OK");
+            else
+            {
+                var msg = _currentLanguage == "vi" ? "Không có điểm thuyết minh nào" : "No commentary points";
+                await DisplayAlert("Thông báo", msg, "OK");
             }
         }
         catch (Exception ex)
-      {
-         Debug.WriteLine($"[MapPage] LoadPoints error: {ex.Message}");
-   }
+        {
+            Debug.WriteLine($"[MapPage] LoadPoints error: {ex.Message}");
+        }
     }
 
     private async Task TranslateAndDisplayPoints()
@@ -277,70 +277,70 @@ var location = await Geolocation.GetLocationAsync(new GeolocationRequest
 
         _allPoints.Clear();
 
-      foreach (var original in _originalPoints)
+        foreach (var original in _originalPoints)
         {
-      var translated = new LocationPoint
+            var translated = new LocationPoint
             {
-PointId = original.PointId,
- Latitude = original.Latitude,
-Longitude = original.Longitude,
-         Address = original.Address,
-        Category = original.Category,
-    Image = original.Image,
-          Rating = original.Rating,
-   ReviewCount = original.ReviewCount,
-              OpeningHours = original.OpeningHours,
+                PointId = original.PointId,
+                Latitude = original.Latitude,
+                Longitude = original.Longitude,
+                Address = original.Address,
+                Category = original.Category,
+                Image = original.Image,
+                Rating = original.Rating,
+                ReviewCount = original.ReviewCount,
+                OpeningHours = original.OpeningHours,
                 PriceRange = original.PriceRange
- };
+            };
 
             if (_currentLanguage == "vi")
-     {
-      translated.Name = original.Name;
-            translated.Description = original.Description;
- }
-            else
-       {
-         try
-    {
-  translated.Name = !string.IsNullOrEmpty(original.Name)
-          ? await TranslateText(original.Name, _currentLanguage)
-      : original.Name;
-     translated.Description = !string.IsNullOrEmpty(original.Description)
-                    ? await TranslateText(original.Description, _currentLanguage)
-        : original.Description;
-     }
-             catch
-           {
+            {
                 translated.Name = original.Name;
-  translated.Description = original.Description;
-     }
+                translated.Description = original.Description;
             }
- _allPoints.Add(translated);
- }
+            else
+            {
+                try
+                {
+                    translated.Name = !string.IsNullOrEmpty(original.Name)
+                            ? await TranslateText(original.Name, _currentLanguage)
+                        : original.Name;
+                    translated.Description = !string.IsNullOrEmpty(original.Description)
+                                   ? await TranslateText(original.Description, _currentLanguage)
+                       : original.Description;
+                }
+                catch
+                {
+                    translated.Name = original.Name;
+                    translated.Description = original.Description;
+                }
+            }
+            _allPoints.Add(translated);
+        }
 
-  UpdatePinsOnMap();
+        UpdatePinsOnMap();
     }
 
     private async Task<string> TranslateText(string text, string targetLanguage)
-  {
+    {
         if (string.IsNullOrEmpty(text) || targetLanguage == "vi") return text;
 
-     if (_translationCache.ContainsKey(text) && _translationCache[text].ContainsKey(targetLanguage))
+        if (_translationCache.ContainsKey(text) && _translationCache[text].ContainsKey(targetLanguage))
             return _translationCache[text][targetLanguage];
 
         if (_translationService == null) return text;
 
         try
         {
-         var translated = await _translationService.TranslateTextAsync(text, targetLanguage);
-     if (!_translationCache.ContainsKey(text))
-            _translationCache[text] = new Dictionary<string, string>();
+            var translated = await _translationService.TranslateTextAsync(text, targetLanguage);
+            if (!_translationCache.ContainsKey(text))
+                _translationCache[text] = new Dictionary<string, string>();
             _translationCache[text][targetLanguage] = translated;
- return translated;
+            return translated;
         }
         catch
         {
-     return text;
+            return text;
         }
     }
 
@@ -348,19 +348,19 @@ Longitude = original.Longitude,
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-          map.Pins.Clear();
-       foreach (var point in _allPoints)
-    {
-          var pin = new Pin
-    {
-  Label = point.Name,
-        Address = point.Description ?? (_currentLanguage == "vi" ? "Địa điểm thuyết minh" : "Commentary point"),
-     Location = new Location(point.Latitude, point.Longitude),
-      Type = PinType.Place
-       };
-      pin.MarkerClicked += (s, e) => OnPinClicked(point);
-     map.Pins.Add(pin);
-      }
+            map.Pins.Clear();
+            foreach (var point in _allPoints)
+            {
+                var pin = new Pin
+                {
+                    Label = point.Name,
+                    Address = point.Description ?? (_currentLanguage == "vi" ? "Địa điểm thuyết minh" : "Commentary point"),
+                    Location = new Location(point.Latitude, point.Longitude),
+                    Type = PinType.Place
+                };
+                pin.MarkerClicked += (s, e) => OnPinClicked(point);
+                map.Pins.Add(pin);
+            }
         });
     }
 
@@ -370,19 +370,19 @@ Longitude = original.Longitude,
         var translatedName = await TranslateTextIfNeeded(point.Name);
 
         var listenText = _currentLanguage == "vi" ? "🔊 Nghe thuyết minh" : "🔊 Listen";
-  var detailText = _currentLanguage == "vi" ? "📖 Xem chi tiết" : "📖 View details";
+        var detailText = _currentLanguage == "vi" ? "📖 Xem chi tiết" : "📖 View details";
         var cancelText = _currentLanguage == "vi" ? "Hủy" : "Cancel";
 
         string action = await DisplayActionSheet($"📍 {translatedName}", cancelText, null, listenText, detailText);
 
-  if (action == listenText)
+        if (action == listenText)
         {
-    var textToSpeak = $"{translatedName}. {await TranslateTextIfNeeded(point.Description ?? "")}";
-   await TextToSpeech.Default.SpeakAsync(textToSpeak);
-   }
+            var textToSpeak = $"{translatedName}. {await TranslateTextIfNeeded(point.Description ?? "")}";
+            await TextToSpeech.Default.SpeakAsync(textToSpeak);
+        }
         else if (action == detailText)
-    {
-   await Navigation.PushAsync(new PoiDetailPage { PoiId = point.PointId });
+        {
+            await Navigation.PushAsync(new PoiDetailPage { PoiId = point.PointId });
         }
     }
 
@@ -426,16 +426,16 @@ Longitude = original.Longitude,
     }
 
     private async Task<string> TranslateTextIfNeeded(string text)
-  {
-    if (string.IsNullOrEmpty(text) || _currentLanguage == "vi") return text;
+    {
+        if (string.IsNullOrEmpty(text) || _currentLanguage == "vi") return text;
         if (_translationService == null) return text;
         try
         {
             return await _translationService.TranslateTextAsync(text, _currentLanguage);
-  }
-     catch
+        }
+        catch
         {
-        return text;
+            return text;
         }
     }
 
@@ -507,25 +507,25 @@ Longitude = original.Longitude,
 
     private async void OnGpsButtonTapped(object sender, EventArgs e)
     {
-  if (_currentLocation != null)
-    {
-          var mapSpan = MapSpan.FromCenterAndRadius(new Location(_currentLocation.Latitude, _currentLocation.Longitude), Distance.FromMeters(500));
+        if (_currentLocation != null)
+        {
+            var mapSpan = MapSpan.FromCenterAndRadius(new Location(_currentLocation.Latitude, _currentLocation.Longitude), Distance.FromMeters(500));
             map.MoveToRegion(mapSpan);
-     }
+        }
         else
         {
             await DisplayAlert("Thông báo", "Đang lấy vị trí...", "OK");
             InitializeMap();
-    }
+        }
     }
 
     private async void OnPlayButtonClicked(object sender, EventArgs e)
     {
-    if (_currentSelectedPoi != null)
+        if (_currentSelectedPoi != null)
         {
-     var translatedName = await TranslateTextIfNeeded(_currentSelectedPoi.Name);
-    var translatedDescription = await TranslateTextIfNeeded(_currentSelectedPoi.Description ?? "");
-  await TextToSpeech.Default.SpeakAsync($"{translatedName}. {translatedDescription}");
+            var translatedName = await TranslateTextIfNeeded(_currentSelectedPoi.Name);
+            var translatedDescription = await TranslateTextIfNeeded(_currentSelectedPoi.Description ?? "");
+            await TextToSpeech.Default.SpeakAsync($"{translatedName}. {translatedDescription}");
         }
     }
 
@@ -534,27 +534,27 @@ Longitude = original.Longitude,
         base.OnAppearing();
         var currentLanguage = Preferences.Get("AppLanguage", "vi");
         if (currentLanguage != _lastLanguage && !_isTranslating)
-    {
-       _currentLanguage = currentLanguage;
+        {
+            _currentLanguage = currentLanguage;
             await TranslateAndDisplayPoints();
             RefreshUITexts();
-      }
+        }
 
-            var newRadius = Preferences.Get("GeoFenceRadiusValue", 15.0);
-       if (Math.Abs(newRadius - _currentRadius) > 0.01)
-   {
-        _currentRadius = newRadius;
-  UpdateRadiusDisplay();
-       CheckNearbyPoints();
-       }
+        var newRadius = Preferences.Get("GeoFenceRadiusValue", 15.0);
+        if (Math.Abs(newRadius - _currentRadius) > 0.01)
+        {
+            _currentRadius = newRadius;
+            UpdateRadiusDisplay();
+            CheckNearbyPoints();
+        }
 
         if (_allPoints == null || !_allPoints.Any())
-         await LoadPoints();
+            await LoadPoints();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-  _gpsTokenSource?.Cancel();
+        _gpsTokenSource?.Cancel();
     }
 }
