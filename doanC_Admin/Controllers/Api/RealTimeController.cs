@@ -2,11 +2,13 @@
 using Microsoft.AspNetCore.SignalR;
 using doanC_Admin.Hubs;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class RealTimeController : ControllerBase
     {
         private readonly IHubContext<DashboardHub> _hubContext;

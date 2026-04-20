@@ -118,6 +118,13 @@ namespace doanC_.Services.Api
                 return new List<LocationPoint>();
             }
         }
+        /// <summary>
+        /// Lấy tất cả địa điểm (alias cho GetLocationPointsAsync)
+        /// </summary>
+        public async Task<List<LocationPoint>> GetAllLocationPointsAsync()
+        {
+            return await GetLocationPointsAsync();
+        }
 
         public async Task<bool> TestConnectionAsync()
         {

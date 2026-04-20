@@ -24,85 +24,95 @@ namespace doanC_Admin.Pages
 
         public string ErrorMessage { get; set; } = string.Empty;
 
-        public void OnGet()
+        public async Task<IActionResult> OnPostAsync()
         {
-            // Nếu đã đăng nhập, chuyển hướng theo role
-            if (HttpContext.Session.GetString("AdminId") != null)
+            try
             {
-                var role = HttpContext.Session.GetString("Role");
-                if (role == "Manager")
-                    Response.Redirect("/Owner/Dashboard");
+                if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
+                {
+                    ErrorMessage = "Vui lòng nhập tên đăng nhập và mật khẩu";
+                    return Page();
+                }
+
+                var user = await _context.AdminUsers
+                    .FirstOrDefaultAsync(u => u.Username == Username && u.IsActive == true);
+
+                if (user == null)
+                {
+                    ErrorMessage = "Tên đăng nhập không tồn tại hoặc bị khóa";
+                    return Page();
+                }
+
+                if (user.PasswordHash != Password)
+                {
+                    ErrorMessage = "Mật khẩu không chính xác";
+                    return Page();
+                }
+
+                // Cập nhật thời gian đăng nhập cuối
+                user.LastLogin = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                // Lưu Session
+                HttpContext.Session.SetString("AdminId", user.AdminId.ToString());
+                HttpContext.Session.SetString("Username", user.Username);
+                HttpContext.Session.SetString("FullName", user.FullName ?? user.Username);
+                HttpContext.Session.SetString("Role", user.Role ?? "Viewer");
+
+                // Ghi log đăng nhập
+                var loginLog = new AdminLoginLog
+                {
+                    AdminId = user.AdminId,
+                    Username = user.Username,
+                    LoginTime = DateTime.Now,
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    DeviceInfo = Request.Headers["User-Agent"].ToString(),
+                    Status = "Success"
+                };
+                _context.AdminLoginLogs.Add(loginLog);
+
+                // Tạo session active
+                var session = new AdminSession
+                {
+                    AdminId = user.AdminId,
+                    Username = user.Username,
+                    LoginTime = DateTime.Now,
+                    LastActivity = DateTime.Now,
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    IsActive = true
+                };
+                _context.AdminSessions.Add(session);
+                await _context.SaveChangesAsync();
+
+                // ✅ Redirect theo Role (CHỈ 1 LẦN)
+                var role = user.Role?.ToLower() ?? "viewer";
+
+                if (role == "owner" || role == "manager")
+                {
+                    return RedirectToPage("/Owner/Dashboard");
+                }
                 else
-                    Response.Redirect("/Dashboard");
+                {
+                    return RedirectToPage("/Dashboard");
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Lỗi hệ thống: {ex.Message}";
+                return Page();
             }
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        public IActionResult OnGet()
         {
-            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
+            var role = HttpContext.Session.GetString("Role");
+            if (!string.IsNullOrEmpty(role))
             {
-                ErrorMessage = "Vui lòng nhập tên đăng nhập và mật khẩu";
-                return Page();
+                if (role == "Owner" || role == "Manager")
+                    return RedirectToPage("/Owner/Dashboard");
+                return RedirectToPage("/Dashboard");
             }
-
-            var user = await _context.AdminUsers
-                .FirstOrDefaultAsync(u => u.Username == Username && u.PasswordHash == Password);
-
-            if (user == null)
-            {
-                ErrorMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
-                return Page();
-            }
-
-            if (user.IsActive == false)
-            {
-                ErrorMessage = "Tài khoản đã bị khóa";
-                return Page();
-            }
-
-            // Ghi log đăng nhập
-            var loginLog = new AdminLoginLog
-            {
-                AdminId = user.AdminId,
-                Username = user.Username,
-                LoginTime = DateTime.Now,
-                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                DeviceInfo = Request.Headers["User-Agent"].ToString(),
-                Status = "Success"
-            };
-            _context.AdminLoginLogs.Add(loginLog);
-            await _context.SaveChangesAsync();
-
-            // Cập nhật LastLogin
-            user.LastLogin = DateTime.Now;
-            await _context.SaveChangesAsync();
-
-            // Tạo session
-            HttpContext.Session.SetString("AdminId", user.AdminId.ToString());
-            HttpContext.Session.SetString("Username", user.Username);
-            HttpContext.Session.SetString("FullName", user.FullName ?? user.Username);
-            HttpContext.Session.SetString("Role", user.Role ?? "Admin");
-
-            // Ghi vào bảng session đang hoạt động
-            var activeSession = new AdminSession
-            {
-                AdminId = user.AdminId,
-                Username = user.Username,
-                LoginTime = DateTime.Now,
-                LastActivity = DateTime.Now,
-                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                IsActive = true
-            };
-            _context.AdminSessions.Add(activeSession);
-            await _context.SaveChangesAsync();
-
-            // Chuyển hướng theo role
-            if (user.Role == "Manager")
-            {
-                return RedirectToPage("/Owner/Dashboard");
-            }
-
-            return RedirectToPage("/Dashboard");
+            return Page();
         }
     }
 }

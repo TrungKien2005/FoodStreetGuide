@@ -143,14 +143,7 @@
                         <td>@item.Name</td>
                         <td><span class="badge-category">@(item.Category ?? "Chưa phân loại")</span></td>
                         <td class="coordinate">
-                            @if (item.Latitude != null && item.Longitude != null)
-                            {
-                                <text>@item.Latitude.Value.ToString("F6"), @item.Longitude.Value.ToString("F6")</text>
-                            }
-                            else
-                            {
-                                <span class="text-muted">Chưa cập nhật</span>
-                            }
+                            @item.Latitude.ToString("F6"), @item.Longitude.ToString("F6")
                         </td>
                         <td class="action-column">
                             <a asp-page="./Edit" asp-route-id="@item.PointId" class="btn-edit">

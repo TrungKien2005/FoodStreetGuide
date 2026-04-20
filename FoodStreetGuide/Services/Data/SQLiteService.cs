@@ -31,10 +31,12 @@ namespace doanC_.Services.Data
         {
             try
             {
+                await _database.CreateTableAsync<LocationPoint>();
                 await Database.CreateTableAsync<User>();
                 await Database.CreateTableAsync<LocationPoint>();
                 await Database.CreateTableAsync<Dish>();
                 await Database.CreateTableAsync<Review>();
+                await Database.CreateTableAsync<LocationPointCache>();
 
                 Debug.WriteLine($"[SQLite] Database initialized at: {_dbPath}");
             }
@@ -130,18 +132,17 @@ namespace doanC_.Services.Data
         }
 
         // ============ LOCATION POINT OPERATIONS ============
-        public async Task<int> AddLocationPointAsync(LocationPoint location)
+        public async Task<int> AddLocationPointAsync(LocationPoint point)
         {
             try
             {
-                location.CreatedAt = DateTime.UtcNow;
-                location.UpdatedAt = DateTime.UtcNow;
-                return await Database.InsertAsync(location);
+                // Sửa: Dùng đúng bảng LocationPoint
+                return await _database.InsertAsync(point);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[SQLite] AddLocationPoint error: {ex.Message}");
-                throw;
+                Debug.WriteLine($"[SQLiteService] AddLocationPoint error: {ex.Message}");
+                return 0;
             }
         }
 
@@ -182,11 +183,11 @@ namespace doanC_.Services.Data
         {
             try
             {
-                return await Database.Table<LocationPoint>().ToListAsync();
+                return await _database.Table<LocationPoint>().ToListAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[SQLite] GetAllLocationPoints error: {ex.Message}");
+                Debug.WriteLine($"[SQLiteService] GetAllLocationPoints error: {ex.Message}");
                 return new List<LocationPoint>();
             }
         }
@@ -470,6 +471,47 @@ namespace doanC_.Services.Data
                 Debug.WriteLine($"[SQLite] ClearAll error: {ex.Message}");
                 return false;
             }
+        }
+        public async Task ClearAllCacheAsync()
+        {
+            try
+            {
+                // Sửa lại: Xóa đúng bảng LocationPoint
+                await _database.DeleteAllAsync<LocationPoint>();
+                Debug.WriteLine("[SQLiteService] ✅ All cache cleared");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SQLiteService] ❌ Clear cache error: {ex.Message}");
+            }
+        }
+        // Thêm method này để xóa database cũ
+        public void DeleteDatabase()
+        {
+            if (File.Exists(_dbPath))
+            {
+                File.Delete(_dbPath);
+                Debug.WriteLine("[SQLiteService] Old database deleted");
+            }
+        }
+        public class LocationPointCache
+        {
+            [PrimaryKey, AutoIncrement]
+            public int Id { get; set; }
+            public int PointId { get; set; }
+            public string? Name { get; set; }
+            public string? Description { get; set; }
+            public double Latitude { get; set; }
+            public double Longitude { get; set; }
+            public string? Address { get; set; }
+            public string? Category { get; set; }
+            public string? Image { get; set; }  
+            public double Rating { get; set; }
+            public int ReviewCount { get; set; }
+            public string? OpeningHours { get; set; }
+            public string? PriceRange { get; set; }
+            public bool IsApproved { get; set; }
+            public DateTime UpdatedAt { get; set; }
         }
     }
 }

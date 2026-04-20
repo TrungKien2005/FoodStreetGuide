@@ -62,6 +62,10 @@ namespace doanC_.Models
         [JsonPropertyName("createdBy")]
         public int? CreatedBy { get; set; }
 
+        // ✅ THÊM PROPERTY NÀY - QUAN TRỌNG
+        [JsonPropertyName("isApproved")]
+        public bool IsApproved { get; set; } = false;  // Mặc định = false (chờ duyệt)
+
         // 👉 Xóa dòng này nếu có
         // public virtual AdminUser? Admin { get; set; }
 

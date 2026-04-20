@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="appsettings.secret.props"
-        Condition="Exists('appsettings.secret.props')" />
+	<Import Project="appsettings.secret.props" Condition="Exists('appsettings.secret.props')"/>
 	
 	<PropertyGroup>
 		<TargetFramework>net9.0-android</TargetFramework>
@@ -76,7 +75,6 @@
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 
 		<!-- QR -->
-
 		<!-- Trong file .csproj -->
 		<PackageReference Include="Plugin.Maui.Audio" Version="2.0.0" />
 

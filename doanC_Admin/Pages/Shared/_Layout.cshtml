@@ -497,6 +497,13 @@
                     <span>Đăng xuất</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("AccountManagement") == true ? "active" : "")"
+                   href="/AccountManagement">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Quản lý tài khoản</span>
+                </a>
+            </li>
         </ul>
     </div>
 

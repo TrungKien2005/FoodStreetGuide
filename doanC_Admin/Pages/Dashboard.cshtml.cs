@@ -1,13 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using doanC_Admin.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using doanC_Admin.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using doanC_Admin.Helpers;
 
 namespace doanC_Admin.Pages
 {
+    [Authorize("Admin", "SuperAdmin")]
     public class DashboardModel : PageModel
     {
         private readonly FoodStreetGuideDBContext _context;
@@ -35,6 +38,7 @@ namespace doanC_Admin.Pages
         public int TodayVisitors { get; set; }
         public int TodayGeoFenceEntries { get; set; }
         public int TodayTTSPlays { get; set; }
+        public int PendingLocationsCount { get; set; }
 
         // ========== TĂNG TRƯỞNG ==========
         public double LocationGrowth { get; set; }
@@ -70,11 +74,29 @@ namespace doanC_Admin.Pages
         // ========== 6. LỊCH SỬ ĐĂNG NHẬP ==========
         public List<LoginHistoryDto> LoginHistory { get; set; } = new();
 
-        // ========== 7. ĐỊA ĐIỂM CHỜ DUYỆT ==========
-        public List<PendingLocationDto> PendingLocations { get; set; } = new();
+        // ========== 7. ADMIN ĐANG HOẠT ĐỘNG ==========
         public List<ActiveAdminSessionDto> ActiveAdminSessions { get; set; } = new();
 
-        public async Task OnGetAsync()
+        // ========== 8. ĐỊA ĐIỂM CHỜ DUYỆT ==========
+        public List<PendingLocationDto> PendingLocations { get; set; } = new();
+
+        // ========== MAIN METHOD ==========
+        public async Task<IActionResult> OnGetAsync()
+        {
+            // Kiểm tra role
+            var role = HttpContext.Session.GetString("Role");
+            if (role == "Owner")
+            {
+                return RedirectToPage("/Owner/Dashboard");
+            }
+
+            // Nếu không phải Owner, tiếp tục load dữ liệu
+            await LoadDataAsync();
+            return Page();
+        }
+
+        // ========== LOAD DATA METHOD ==========
+        private async Task LoadDataAsync()
         {
             // ============================================
             // THỐNG KÊ CƠ BẢN
@@ -232,8 +254,6 @@ namespace doanC_Admin.Pages
             // ============================================
             // 6. LỊCH SỬ ĐĂNG NHẬP (CÓ PHÂN TRANG)
             // ============================================
-
-            // Lấy tham số phân trang từ QueryString
             if (Request.Query.ContainsKey("page"))
             {
                 int.TryParse(Request.Query["page"], out int page);
@@ -245,13 +265,9 @@ namespace doanC_Admin.Pages
                 LoginHistoryPageSize = pageSize > 0 ? pageSize : 10;
             }
 
-            // Đếm tổng số bản ghi
             LoginHistoryTotalCount = await _context.AdminLoginLogs.CountAsync();
-
-            // Tính tổng số trang
             LoginHistoryTotalPages = (int)Math.Ceiling((double)LoginHistoryTotalCount / LoginHistoryPageSize);
 
-            // Lấy dữ liệu theo trang
             var loginHistoryQuery = _context.AdminLoginLogs
                 .Include(l => l.AdminUser)
                 .OrderByDescending(l => l.LoginTime)
@@ -275,35 +291,8 @@ namespace doanC_Admin.Pages
             LoginHistory = await loginHistoryQuery.ToListAsync();
 
             // ============================================
-            // 7. ĐỊA ĐIỂM CHỜ DUYỆT
+            // 7. ADMIN ĐANG HOẠT ĐỘNG
             // ============================================
-            var pendingLocs = await _context.LocationPoints
-                .Where(l => l.IsApproved == false)
-                .OrderByDescending(l => l.CreatedAt)
-                .Take(10)
-                .ToListAsync();
-
-            foreach (var loc in pendingLocs)
-            {
-                string ownerName = "Chủ quán";
-                if (loc.OwnerId.HasValue)
-                {
-                    var owner = await _context.StoreOwners
-                        .Where(o => o.OwnerId == loc.OwnerId)
-                        .Select(o => o.AdminUser.Username)
-                        .FirstOrDefaultAsync();
-                    ownerName = owner ?? "Chủ quán";
-                }
-
-                PendingLocations.Add(new PendingLocationDto
-                {
-                    PointId = loc.PointId,
-                    Name = loc.Name ?? "",
-                    OwnerName = ownerName,
-                    CreatedAt = loc.CreatedAt
-                });
-            }
-            // Lấy danh sách admin đang hoạt động
             ActiveAdminSessions = await _context.AdminSessions
                 .Where(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5))
                 .Join(_context.AdminUsers, s => s.AdminId, u => u.AdminId, (s, u) => new ActiveAdminSessionDto
@@ -319,9 +308,31 @@ namespace doanC_Admin.Pages
                 })
                 .OrderByDescending(s => s.LastActivity)
                 .ToListAsync();
+
+            // ============================================
+            // 8. ĐỊA ĐIỂM CHỜ DUYỆT
+            // ============================================
+            PendingLocations = await _context.LocationPoints
+                .Where(l => l.IsApproved == false)
+                .OrderByDescending(l => l.CreatedAt)
+                .Select(l => new PendingLocationDto
+                {
+                    PointId = l.PointId,
+                    Name = l.Name ?? "",
+                    OwnerName = _context.StoreOwners
+                        .Where(o => o.OwnerId == l.OwnerId)
+                        .Select(o => o.AdminUser.Username)
+                        .FirstOrDefault() ?? "Chủ quán",
+                    Address = l.Address ?? "",
+                    CreatedAt = l.CreatedAt
+                })
+                .ToListAsync();
+
+            PendingLocationsCount = PendingLocations.Count;
         }
     }
 
+    // ========== DTO CLASSES ==========
     public class HeatmapPoint
     {
         public double lat { get; set; }
@@ -361,8 +372,10 @@ namespace doanC_Admin.Pages
         public int PointId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string OwnerName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
+
     public class ActiveAdminSessionDto
     {
         public int AdminId { get; set; }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using doanC_Admin.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,11 +15,12 @@ namespace doanC_Admin.Pages.Owner
     public class CreateLocationModel : PageModel
     {
         private readonly FoodStreetGuideDBContext _context;
-        private const int MAX_POI_LIMIT = 2;
+        private readonly IWebHostEnvironment _environment;
 
-        public CreateLocationModel(FoodStreetGuideDBContext context)
+        public CreateLocationModel(FoodStreetGuideDBContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         [BindProperty]
@@ -28,8 +30,6 @@ namespace doanC_Admin.Pages.Owner
         public IFormFile? ImageFile { get; set; }
 
         public List<SelectListItem> Categories { get; set; } = new();
-        public int RemainingSlots { get; set; }
-        public int MaxPOILimit => MAX_POI_LIMIT;
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -41,7 +41,6 @@ namespace doanC_Admin.Pages.Owner
             if (role != "Manager")
                 return RedirectToPage("/Dashboard");
 
-            await CheckRemainingSlotsAsync();
             LoadCategories();
             return Page();
         }
@@ -52,29 +51,13 @@ namespace doanC_Admin.Pages.Owner
             if (string.IsNullOrEmpty(adminId))
                 return RedirectToPage("/Login");
 
-            await CheckRemainingSlotsAsync();
-            if (RemainingSlots <= 0)
-            {
-                ModelState.AddModelError(string.Empty, "Bạn đã đạt giới hạn địa điểm");
-                LoadCategories();
-                return Page();
-            }
-
-            // Lấy OwnerId
             var admin = await _context.AdminUsers.FindAsync(int.Parse(adminId));
-            if (admin == null)
-            {
-                ModelState.AddModelError(string.Empty, "Không tìm thấy thông tin người dùng");
-                LoadCategories();
-                return Page();
-            }
-
             var storeOwner = await _context.StoreOwners.FirstOrDefaultAsync(s => s.AdminId == admin.AdminId);
             var ownerId = storeOwner?.OwnerId ?? 0;
 
             LocationPoint.OwnerId = ownerId;
             LocationPoint.CreatedBy = admin.AdminId;
-            LocationPoint.IsApproved = false;
+            LocationPoint.IsApproved = false;  // 👈 CHỜ DUYỆT
             LocationPoint.CreatedAt = DateTime.Now;
             LocationPoint.UpdatedAt = DateTime.Now;
 
@@ -93,30 +76,13 @@ namespace doanC_Admin.Pages.Owner
             _context.LocationPoints.Add(LocationPoint);
             await _context.SaveChangesAsync();
 
+            TempData["SuccessMessage"] = "Địa điểm đã được gửi đi và đang chờ admin duyệt!";
             return RedirectToPage("/Owner/Dashboard");
-        }
-
-        private async Task CheckRemainingSlotsAsync()
-        {
-            var adminId = HttpContext.Session.GetString("AdminId");
-            if (string.IsNullOrEmpty(adminId))
-            {
-                RemainingSlots = MAX_POI_LIMIT;
-                return;
-            }
-
-            var storeOwner = await _context.StoreOwners.FirstOrDefaultAsync(s => s.AdminId == int.Parse(adminId));
-            var ownerId = storeOwner?.OwnerId ?? 0;
-            var currentCount = await _context.LocationPoints.CountAsync(l => l.OwnerId == ownerId);
-            RemainingSlots = MAX_POI_LIMIT - currentCount;
-            if (RemainingSlots < 0) RemainingSlots = 0;
         }
 
         private string GetImagesPath()
         {
-            var currentDirectory = Directory.GetCurrentDirectory();
-            var solutionDirectory = Directory.GetParent(currentDirectory)?.FullName ?? currentDirectory;
-            var imagesPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "Images");
+            var imagesPath = Path.Combine(_environment.WebRootPath, "images", "locations");
             if (!Directory.Exists(imagesPath)) Directory.CreateDirectory(imagesPath);
             return imagesPath;
         }
@@ -130,9 +96,7 @@ namespace doanC_Admin.Pages.Owner
                 new SelectListItem { Value = "Đồ nướng", Text = "🔥 Đồ nướng" },
                 new SelectListItem { Value = "Hải sản", Text = "🦐 Hải sản" },
                 new SelectListItem { Value = "Nhà hàng", Text = "🍽️ Nhà hàng" },
-                new SelectListItem { Value = "Quán ăn", Text = "🍜 Quán ăn" },
-                new SelectListItem { Value = "Cafe", Text = "☕ Cafe" },
-                new SelectListItem { Value = "Bar - Pub", Text = "🍺 Bar - Pub" }
+                new SelectListItem { Value = "Quán ăn", Text = "🍜 Quán ăn" }
             };
         }
     }

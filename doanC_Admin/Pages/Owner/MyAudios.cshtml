@@ -1,0 +1,107 @@
+﻿@page
+@model doanC_Admin.Pages.Owner.MyAudiosModel
+@{
+    Layout = "_OwnerLayout";
+    ViewData["Title"] = "Quản lý Audio";
+}
+
+<style>
+    .audio-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+        border: 1px solid #ecf0f1;
+    }
+
+        .audio-card:hover {
+            transform: translateX(5px);
+            border-left: 4px solid #FF5722;
+        }
+
+    .play-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #FFF3E0;
+        border: none;
+        color: #FF5722;
+        transition: all 0.3s;
+    }
+
+        .play-btn:hover {
+            background: #FF5722;
+            color: white;
+            transform: scale(1.05);
+        }
+</style>
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-headphones me-2 text-primary"></i>Quản lý Audio</h4>
+            <p class="text-muted mb-0">Quản lý file thuyết minh cho các địa điểm đã được duyệt</p>
+        </div>
+    </div>
+
+    @if (!Model.ApprovedLocations.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Bạn chưa có địa điểm nào được duyệt. Hãy đăng ký địa điểm và chờ admin duyệt.
+        </div>
+    }
+
+    <div class="row">
+        @foreach (var loc in Model.ApprovedLocations)
+        {
+            <div class="col-md-6 mb-3">
+                <div class="audio-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">@loc.Name</h6>
+                            <small class="text-muted">@loc.Address</small>
+                        </div>
+                        <a href="/Owner/UploadAudio?pointId=@loc.PointId" class="btn btn-gradient btn-sm">
+                            <i class="fas fa-upload me-1"></i>Tải lên
+                        </a>
+                    </div>
+
+                    @if (Model.AudiosByLocation.ContainsKey(loc.PointId) && Model.AudiosByLocation[loc.PointId].Any())
+                    {
+                        <hr class="my-3">
+                        @foreach (var audio in Model.AudiosByLocation[loc.PointId])
+                        {
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    <i class="fas fa-file-audio text-primary me-2"></i>
+                                    <small>@audio.Language</small>
+                                </div>
+                                <audio controls style="height: 32px; width: 200px;">
+                                    <source src="@audio.FilePath" type="audio/mpeg">
+                                </audio>
+                                <button class="play-btn" onclick="playAudio('@audio.FilePath')">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted small mt-2">
+                            <i class="fas fa-info-circle me-1"></i>Chưa có file audio
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function playAudio(filePath) {
+        const audio = new Audio(filePath);
+        audio.play();
+    }
+</script>

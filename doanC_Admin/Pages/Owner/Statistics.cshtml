@@ -1,0 +1,103 @@
+﻿@page
+@model doanC_Admin.Pages.Owner.StatisticsModel
+@{
+    Layout = "_OwnerLayout";
+    ViewData["Title"] = "Thống kê";
+}
+
+<div class="container-fluid px-4">
+    <div class="mb-4">
+        <h4><i class="fas fa-chart-line me-2 text-primary"></i>Thống kê hoạt động</h4>
+        <p class="text-muted">Tổng quan lượt tương tác với địa điểm của bạn</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-qrcode"></i> Lượt quét QR theo thời gian
+                </div>
+                <div class="card-body">
+                    <canvas id="scanChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-headphones"></i> Lượt nghe Audio theo thời gian
+                </div>
+                <div class="card-body">
+                    <canvas id="listenChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar"></i> Top địa điểm được quan tâm
+                </div>
+                <div class="card-body">
+                    <canvas id="topLocationsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Scan Chart
+        new Chart(document.getElementById('scanChart'), {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.ScanLabels)),
+                datasets: [{
+                    label: 'Lượt quét QR',
+                    data: @Html.Raw(Json.Serialize(Model.ScanData)),
+                    borderColor: '#FF5722',
+                    backgroundColor: 'rgba(255,87,34,0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true }
+        });
+
+        // Listen Chart
+        new Chart(document.getElementById('listenChart'), {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.ListenLabels)),
+                datasets: [{
+                    label: 'Lượt nghe Audio',
+                    data: @Html.Raw(Json.Serialize(Model.ListenData)),
+                    borderColor: '#FF8A65',
+                    backgroundColor: 'rgba(255,138,101,0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true }
+        });
+
+        // Top Locations Chart
+        new Chart(document.getElementById('topLocationsChart'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.TopLocationNames)),
+                datasets: [{
+                    label: 'Tổng lượt tương tác',
+                    data: @Html.Raw(Json.Serialize(Model.TopLocationTotals)),
+                    backgroundColor: '#FF5722',
+                    borderRadius: 8
+                }]
+            },
+            options: { responsive: true, indexAxis: 'y' }
+        });
+    </script>
+}

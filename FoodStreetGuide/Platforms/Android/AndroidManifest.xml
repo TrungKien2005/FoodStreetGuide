@@ -5,11 +5,10 @@
         android:icon="@mipmap/appicon"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true">
-		<!-- ← THÊM DÒNG NÀY -->
 
 		<meta-data
 			android:name="com.google.android.geo.API_KEY"
-			android:value="${GOOGLE_MAPS_API_KEY}" />
+			android:value="AIzaSyDIV0Lz6RG3_nm78XaWhiAyH3sgUe7aqmU" />
 
 	</application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

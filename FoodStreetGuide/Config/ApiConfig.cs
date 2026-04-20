@@ -7,51 +7,58 @@ namespace doanC_.Config
     public static class ApiConfig
     {
         // ========== CẤU HÌNH CHUNG ==========
-        private const int Port = 5225;           // ✅ THÊM DÒNG NÀY
+        private const int Port = 5225;
         private const string ApiPath = "/api/LocationApi";
+        // ========== IP THỰC CỦA MÁY TÍNH ==========
+        private const string LocalIP = "192.168.1.224";
 
         // ========== NGROK URL (CẬP NHẬT MỖI KHI CHẠY) ==========
-        // Sau khi chạy `ngrok http 5225`, copy URL mới vào đây
         private const string NgrokUrl = "https://tapeless-nondivergently-eleni.ngrok-free.dev/api/LocationApi";
 
-        // ========== URL CHO CÁC CHẾ ĐỘ ==========
-        // 👉 IP THỰC CỦA MÁY TÍNH (từ ipconfig)
-        private const string LocalIP = "192.168.13.238";
+        // ========== RENDER URL (THÊM VÀO) ==========
+        private const string RenderUrl = "https://foodstreet-api-nrym.onrender.com//api/LocationApi";
 
-        // Các URL tương ứng
+        // ========== CÁC URL TƯƠNG ỨNG ==========
         private static readonly Dictionary<string, string> Urls = new()
         {
             { "Localhost", $"http://localhost:{Port}{ApiPath}" },
             { "Emulator", $"http://10.0.2.2:{Port}{ApiPath}" },
             { "LocalhostReverse", $"http://localhost:{Port}{ApiPath}" },
             { "Lan", $"http://{LocalIP}:{Port}{ApiPath}" },
-            { "Ngrok", NgrokUrl }  // ✅ THÊM CHẾ ĐỘ NGROK
+            { "Ngrok", NgrokUrl },
+            { "Render", RenderUrl }  // ✅ THÊM RENDER
         };
 
-        // 🔧 CHỌN CHẾ ĐỘ KẾT NỐI:
+        // ========== CHỌN CHẾ ĐỘ KẾT NỐI ==========
         // "Localhost" - Chạy trên Windows (cùng máy với doanC_Admin)
         // "Emulator" - Android Emulator (dùng 10.0.2.2)
-        // "Lan" - Dùng IP thực trong mạng LAN
+        // "Lan" - Dùng IP thực trong mạng LAN (chung WiFi)
         // "LocalhostReverse" - Sau khi chạy adb reverse tcp:5225 tcp:5225
         // "Ngrok" - Dùng ngrok (demo từ xa)
-        private const string CurrentMode = "Ngrok";  // 👈 CHỌN CHẾ ĐỘ NÀY KHI DEMO TỪ XA
+        // "Render" - Dùng Render.com (deploy cloud)
+        private const string CurrentMode = "Lan";
 
         public static string GetBaseUrl()
         {
             if (Urls.TryGetValue(CurrentMode, out var url))
             {
-                Debug.WriteLine($"[ApiConfig] 🌐 Mode: {CurrentMode}, URL: {url}");
+                Debug.WriteLine($"[ApiConfig] ✅ Mode: {CurrentMode}");
+                Debug.WriteLine($"[ApiConfig] 🔗 URL: {url}");
                 return url;
             }
 
-            // Fallback
-            Debug.WriteLine($"[ApiConfig] ⚠️ Mode {CurrentMode} not found, using Ngrok");
-            return NgrokUrl;
+            // Fallback an toàn
+            Debug.WriteLine($"[ApiConfig] ⚠️ Mode {CurrentMode} not found, using Localhost");
+            return Urls["Localhost"];
         }
 
-        public static string GetDynamicLanUrl()
+        /// <summary>
+        /// Lấy IP động của máy (dùng khi IP thay đổi)
+        /// </summary>
+        public static string GetDynamicIpUrl()
         {
-            return $"http://{LocalIP}:{Port}{ApiPath}";
+            var dynamicIp = GetLocalIPAddress();
+            return $"http://{dynamicIp}:{Port}{ApiPath}";
         }
 
         private static string GetLocalIPAddress()
@@ -78,19 +85,51 @@ namespace doanC_.Config
             }
         }
 
+        /// <summary>
+        /// Kiểm tra kết nối API (bất đồng bộ)
+        /// </summary>
+        public static async Task<bool> TestConnectionAsync()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(5);
+                var response = await client.GetAsync(GetBaseUrl());
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ApiConfig] ❌ Connection test failed: {ex.Message}");
+                return false;
+            }
+        }
+
         public static void TestConnection()
         {
-            Debug.WriteLine($"[ApiConfig] ===== CONFIG INFO =====");
-            Debug.WriteLine($"[ApiConfig] Mode: {CurrentMode}");
-            Debug.WriteLine($"[ApiConfig] URL: {GetBaseUrl()}");
-            Debug.WriteLine($"[ApiConfig] Port: {Port}");
-            Debug.WriteLine($"[ApiConfig] Path: {ApiPath}");
-            Debug.WriteLine($"[ApiConfig] Local IP: {LocalIP}");
+            Debug.WriteLine($"[ApiConfig] ========== CONFIG INFO ==========");
+            Debug.WriteLine($"[ApiConfig] 📱 Mode: {CurrentMode}");
+            Debug.WriteLine($"[ApiConfig] 🔗 URL: {GetBaseUrl()}");
+            Debug.WriteLine($"[ApiConfig] 🔌 Port: {Port}");
+            Debug.WriteLine($"[ApiConfig] 📁 Path: {ApiPath}");
+            Debug.WriteLine($"[ApiConfig] 💻 Local IP: {LocalIP}");
+            Debug.WriteLine($"[ApiConfig] 🌐 Dynamic IP: {GetLocalIPAddress()}");
+            Debug.WriteLine($"[ApiConfig] ==================================");
         }
 
         public static string GetCurrentModeInfo()
         {
-            return $"Mode: {CurrentMode}\nURL: {GetBaseUrl()}\nPort: {Port}\nIP: {LocalIP}";
+            return $"""
+                    ==================================
+                    📱 FoodStreetGuide API Configuration
+                    ==================================
+                    Mode        : {CurrentMode}
+                    URL         : {GetBaseUrl()}
+                    Port        : {Port}
+                    Path        : {ApiPath}
+                    Local IP    : {LocalIP}
+                    Dynamic IP  : {GetLocalIPAddress()}
+                    ==================================
+                    """;
         }
     }
 }

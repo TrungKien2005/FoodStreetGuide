@@ -1,5 +1,4 @@
-﻿// doanC_Admin/Models/OwnerCreateLocationModel.cs
-namespace doanC_Admin.Models
+﻿namespace doanC_Admin.Models
 {
     public class OwnerCreateLocationModel
     {

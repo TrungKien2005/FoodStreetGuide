@@ -66,79 +66,76 @@
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="delete-card">
-                <div class="delete-header">
-                    <h3 class="mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Xác nhận xóa địa điểm
-                    </h3>
+            @if (Model.LocationPoint == null)
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Không tìm thấy địa điểm cần xóa.
                 </div>
-                <div class="p-4">
-                    @if (TempData["ErrorMessage"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
-
-                    <div class="alert alert-warning">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Cảnh báo!</strong> Bạn có chắc chắn muốn xóa địa điểm này? Hành động này không thể hoàn tác.
+                <a asp-page="./Index" class="btn btn-secondary">Quay lại</a>
+            }
+            else
+            {
+                <div class="delete-card">
+                    <div class="delete-header">
+                        <h3 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Xác nhận xóa địa điểm
+                        </h3>
                     </div>
-
-                    <table class="info-table">
-                        <tr><th>ID</th><td>@Model.LocationPoint.PointId</td></tr>
-                        <tr><th>Tên địa điểm</th><td><strong>@Model.LocationPoint.Name</strong></td></tr>
-                        <tr><th>Danh mục</th><td><span class="badge-category">@(Model.LocationPoint.Category ?? "Chưa phân loại")</span></td></tr>
-                        <tr><th>Địa chỉ</th><td>@(string.IsNullOrEmpty(Model.LocationPoint.Address) ? "Chưa cập nhật" : Model.LocationPoint.Address)</td></tr>
-                        @{
-                            var hasCoordinates = Model.LocationPoint.Latitude.HasValue && Model.LocationPoint.Longitude.HasValue;
-                            var lat = hasCoordinates ? Model.LocationPoint.Latitude.Value.ToString("F6") : "Chưa cập nhật";
-                            var lng = hasCoordinates ? Model.LocationPoint.Longitude.Value.ToString("F6") : "Chưa cập nhật";
+                    <div class="p-4">
+                        @if (TempData["ErrorMessage"] != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
                         }
 
-                        <tr>
-                            <th>Tọa độ</th>
-                            <td>
-                                @if (hasCoordinates)
-                                {
-                                    <span>@lat, @lng</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Chưa cập nhật</span>
-                                }
-                            </td>
-                        </tr>
-                        <tr><th>Đánh giá</th><td>⭐ @((Model.LocationPoint.Rating ?? 0).ToString("F1")) / 5</td></tr>
-                        <tr><th>Ngày tạo</th><td>@Model.LocationPoint.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
-                        <tr><th>Cập nhật</th><td>@Model.LocationPoint.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
-                    </table>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Cảnh báo!</strong> Bạn có chắc chắn muốn xóa địa điểm này? Hành động này không thể hoàn tác.
+                        </div>
 
-                    @if (!string.IsNullOrEmpty(Model.LocationPoint.Image))
-                    {
-                        <div class="text-center my-3">
-                            <label class="fw-bold">Ảnh đại diện:</label>
-                            <div>
-                                <img src="/images/@Model.LocationPoint.Image" class="delete-image mt-2" />
+                        <table class="info-table">
+                            <tr><th>ID</th><td>@Model.LocationPoint.PointId</td></tr>
+                            <tr><th>Tên địa điểm</th><td><strong>@Model.LocationPoint.Name</strong></td></tr>
+                            <tr><th>Danh mục</th><td><span class="badge-category">@(Model.LocationPoint.Category ?? "Chưa phân loại")</span></td></tr>
+                            <tr><th>Địa chỉ</th><td>@(string.IsNullOrEmpty(Model.LocationPoint.Address) ? "Chưa cập nhật" : Model.LocationPoint.Address)</td></tr>
+                            @{
+                                var lat = Model.LocationPoint.Latitude.ToString("F6");
+                                var lng = Model.LocationPoint.Longitude.ToString("F6");
+                            }
+                            <tr><th>Tọa độ</th><td><span>@lat, @lng</span></td></tr>
+                            <tr><th>Đánh giá</th><td>⭐ @Model.LocationPoint.Rating.ToString("F1") / 5</td></tr>
+                            <tr><th>Ngày tạo</th><td>@Model.LocationPoint.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                            <tr><th>Cập nhật</th><td>@Model.LocationPoint.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                        </table>
+
+                        @if (!string.IsNullOrEmpty(Model.LocationPoint.Image))
+                        {
+                            <div class="text-center my-3">
+                                <label class="fw-bold">Ảnh đại diện:</label>
+                                <div>
+                                    <img src="/images/@Model.LocationPoint.Image" class="delete-image mt-2" />
+                                </div>
                             </div>
-                        </div>
-                    }
+                        }
 
-                    <form method="post" class="mt-4">
-                        <input type="hidden" asp-for="LocationPoint.PointId" />
-                        <div class="d-flex justify-content-between">
-                            <a asp-page="./Index" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Quay lại
-                            </a>
-                            <button type="submit" class="btn btn-confirm" onclick="return confirm('Bạn có chắc chắn muốn xóa địa điểm này?');">
-                                <i class="fas fa-trash me-2"></i>Xác nhận xóa
-                            </button>
-                        </div>
-                    </form>
+                        <form method="post" class="mt-4">
+                            <input type="hidden" asp-for="LocationPoint.PointId" />
+                            <div class="d-flex justify-content-between">
+                                <a asp-page="./Index" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Quay lại
+                                </a>
+                                <button type="submit" class="btn btn-confirm" onclick="return confirm('Bạn có chắc chắn muốn xóa địa điểm này?');">
+                                    <i class="fas fa-trash me-2"></i>Xác nhận xóa
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </div>

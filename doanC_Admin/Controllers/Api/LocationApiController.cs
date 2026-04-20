@@ -1,22 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using System.IO;
+using doanC_Admin.Hubs;
 using doanC_Admin.Models;
 using Microsoft.AspNetCore.Hosting;
-using System.IO;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class LocationApiController : ControllerBase
     {
         private readonly FoodStreetGuideDBContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
-
-        public LocationApiController(FoodStreetGuideDBContext context, IWebHostEnvironment webHostEnvironment)
+        private readonly IHubContext<DashboardHub> _hubContext;
+        public LocationApiController(FoodStreetGuideDBContext context, IWebHostEnvironment webHostEnvironment, IHubContext<DashboardHub> hubContext)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
+            _hubContext = hubContext;
         }
 
         // ========== CORE API - HỖ TRỢ INCREMENTAL SYNC ==========
@@ -442,22 +447,71 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        // POST: api/LocationApi/ApproveLocation
         [HttpPost("ApproveLocation")]
         public async Task<IActionResult> ApproveLocation([FromBody] ApproveLocationRequest request)
         {
             try
             {
-                var location = await _context.LocationPoints.FindAsync(request.PointId);
-                if (location == null)
-                    return BadRequest(new { success = false, message = "Không tìm thấy địa điểm" });
+                var poi = await _context.LocationPoints
+                    .Include(l => l.StoreOwner)
+                    .ThenInclude(o => o.AdminUser)
+                    .FirstOrDefaultAsync(l => l.PointId == request.PointId);
 
-                location.IsApproved = request.IsApproved;
-                location.ApprovedBy = GetCurrentAdminId();
-                location.ApprovedAt = DateTime.Now;
-                location.UpdatedAt = DateTime.Now;
+                if (poi == null)
+                    return NotFound(new { success = false, message = "Không tìm thấy địa điểm" });
+
+                var adminId = HttpContext.Session.GetString("AdminId");
+                var adminName = HttpContext.Session.GetString("Username") ?? "Admin";
+
+                if (request.IsApproved)
+                {
+                    poi.IsApproved = true;
+                    poi.ApprovedAt = DateTime.Now;
+                    poi.ApprovedBy = int.Parse(adminId);
+                    poi.RejectionReason = null;
+                }
+                else
+                {
+                    poi.IsApproved = false;
+                    poi.RejectionReason = request.RejectionReason ?? "Không được duyệt";
+                }
+
+                // Cập nhật số lượng pending của Owner
+                if (poi.OwnerId.HasValue)
+                {
+                    var owner = await _context.StoreOwners.FindAsync(poi.OwnerId.Value);
+                    if (owner != null)
+                    {
+                        if (request.IsApproved)
+                        {
+                            owner.ApprovedLocations++;
+                            if (owner.PendingLocations > 0) owner.PendingLocations--;
+                        }
+                        else
+                        {
+                            owner.RejectedLocations++;
+                            if (owner.PendingLocations > 0) owner.PendingLocations--;
+                        }
+                    }
+                }
 
                 await _context.SaveChangesAsync();
-                return Ok(new { success = true });
+
+                // Gửi thông báo real-time
+                var status = request.IsApproved ? "đã được duyệt" : "bị từ chối";
+                var reason = request.IsApproved ? "" : $" Lý do: {request.RejectionReason}";
+
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                    request.IsApproved ? "✅ POI được duyệt" : "❌ POI bị từ chối",
+                    $"POI '{poi.Name}' của bạn {status}{reason}",
+                    request.IsApproved ? "success" : "error");
+
+                await _hubContext.Clients.All.SendAsync("RefreshDashboard");
+                await _hubContext.Clients.All.SendAsync("RefreshPendingList");
+
+                return Ok(new { success = true, message = request.IsApproved ? "Đã duyệt địa điểm" : "Đã từ chối địa điểm" });
             }
             catch (Exception ex)
             {
@@ -469,13 +523,17 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
         {
             public int PointId { get; set; }
             public bool IsApproved { get; set; }
+            public string? RejectionReason { get; set; }
         }
-
         private int GetCurrentAdminId()
         {
-            // Lấy từ session hoặc context
             var adminId = HttpContext.Session.GetString("AdminId");
-            return int.TryParse(adminId, out int id) ? id : 1;
+            if (int.TryParse(adminId, out int id))
+                return id;
+            var userId = User?.Identity?.Name;
+            if (int.TryParse(userId, out int userIdInt))
+                return userIdInt;
+            return 1;
         }
 
         // ========== PHƯƠNG THỨC HỖ TRỢ ==========

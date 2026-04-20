@@ -1,0 +1,244 @@
+﻿@page
+@model doanC_Admin.Pages.Owner.RegisterPoiModel
+@{
+    Layout = "_OwnerLayout";
+    ViewData["Title"] = "Đăng ký địa điểm mới";
+}
+
+<style>
+    .form-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .required::after {
+        content: "*";
+        color: #dc3545;
+        margin-left: 4px;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        width: 100%;
+        border: none;
+    }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+        }
+</style>
+
+<div class="container px-4">
+    <div class="form-container">
+        <div class="text-center mb-4">
+            <i class="fas fa-plus-circle fa-3x text-primary mb-2"></i>
+            <h4>Đăng ký địa điểm mới</h4>
+            <p class="text-muted">Điền thông tin địa điểm, admin sẽ duyệt trong thời gian sớm nhất</p>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <form id="registerForm" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">Tên cửa hàng</label>
+                        <input type="text" id="storeName" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">Tên địa điểm</label>
+                        <input type="text" id="poiName" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="tel" id="phone" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="email" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">Danh mục</label>
+                        <select id="category" class="form-select" required>
+                            <option value="">Chọn danh mục</option>
+                            <option value="Ăn vặt">🍢 Ăn vặt</option>
+                            <option value="Đồ uống">☕ Đồ uống</option>
+                            <option value="Đồ nướng">🔥 Đồ nướng</option>
+                            <option value="Hải sản">🦐 Hải sản</option>
+                            <option value="Nhà hàng">🍽️ Nhà hàng</option>
+                            <option value="Quán ăn">🍜 Quán ăn</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Giờ mở cửa</label>
+                        <input type="text" id="openingHours" class="form-control" placeholder="VD: 09:00 - 22:00">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group">
+                        <label class="form-label">Mô tả</label>
+                        <textarea id="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group">
+                        <label class="form-label required">Địa chỉ</label>
+                        <input type="text" id="address" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">Vĩ độ (Latitude)</label>
+                        <input type="number" step="any" id="latitude" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">Kinh độ (Longitude)</label>
+                        <input type="number" step="any" id="longitude" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Khoảng giá</label>
+                        <input type="text" id="priceRange" class="form-control" placeholder="VD: 50.000 - 200.000 VNĐ">
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Sau khi gửi đăng ký, địa điểm sẽ được chuyển đến Admin để xét duyệt. Bạn sẽ nhận được thông báo khi có kết quả.
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">
+                <i class="fas fa-paper-plane me-2"></i>Gửi đăng ký
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+    // SignalR để nhận thông báo kết quả
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/dashboardHub")
+        .withAutomaticReconnect()
+        .build();
+
+    connection.start().catch(err => console.error(err));
+
+    connection.on("ReceiveNotification", (title, message, type) => {
+        showToast(title, message, type);
+    });
+
+    function showToast(title, message, type) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999';
+            document.body.appendChild(container);
+        }
+        const bgColor = type === 'success' ? '#4caf50' : (type === 'error' ? '#f44336' : '#ff9800');
+        const toast = document.createElement('div');
+        toast.style.cssText = `background:${bgColor};color:white;padding:12px 20px;margin-bottom:10px;border-radius:8px;min-width:250px;animation:slideIn 0.3s ease`;
+        toast.innerHTML = `<strong>${title}</strong><br/><small>${message}</small>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
+
+    // Submit form
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang gửi...';
+
+        const data = {
+            storeName: document.getElementById('storeName').value,
+            name: document.getElementById('poiName').value,
+            description: document.getElementById('description').value,
+            latitude: parseFloat(document.getElementById('latitude').value),
+            longitude: parseFloat(document.getElementById('longitude').value),
+            address: document.getElementById('address').value,
+            category: document.getElementById('category').value,
+            openingHours: document.getElementById('openingHours').value,
+            priceRange: document.getElementById('priceRange').value,
+            phone: document.getElementById('phone').value,
+            email: document.getElementById('email').value
+        };
+
+        try {
+            const response = await fetch('/api/OwnerApi/RegisterPoi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Thành công', result.message, 'success');
+                document.getElementById('registerForm').reset();
+                setTimeout(() => {
+                    window.location.href = '/Owner/MyLocations';
+                }, 2000);
+            } else {
+                showToast('Lỗi', result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi', error.message, 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Gửi đăng ký';
+        }
+    });
+
+    // Thêm animation
+    const style = document.createElement('style');
+    style.textContent = `@@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
+    document.head.appendChild(style);
+</script>

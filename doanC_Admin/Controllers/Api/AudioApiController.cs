@@ -5,11 +5,13 @@ using doanC_Admin.Helpers;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class AudioApiController : ControllerBase
     {
         private readonly FoodStreetGuideDBContext _context;

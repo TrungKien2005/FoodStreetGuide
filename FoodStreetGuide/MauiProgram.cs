@@ -18,9 +18,10 @@ namespace doanC_
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()                  
-                .UseMauiMaps()                 
+            MauiAppBuilder mauiAppBuilder = builder
+                .UseMauiApp<App>()
+                .UseMauiMaps();
+            mauiAppBuilder
                 .UseSkiaSharp()                       
                 .UseBarcodeReader()               
                 .ConfigureFonts(fonts =>            

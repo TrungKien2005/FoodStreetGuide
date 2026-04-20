@@ -11,21 +11,22 @@ namespace doanC_Admin.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int PointId { get; set; }
 
-        [Required]
-        [MaxLength(100)]
+        [Required, MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
         public string? Description { get; set; }
 
-        public double? Latitude { get; set; }
+        [Required]
+        public double Latitude { get; set; }
 
-        public double? Longitude { get; set; }
+        [Required]
+        public double Longitude { get; set; }
 
-        public double? Radius { get; set; } = 100;
+        public double Radius { get; set; } = 100;
 
         public string? AudioFile { get; set; }
 
-        public string? Language { get; set; } = "vi";
+        public string Language { get; set; } = "vi";
 
         public string? Address { get; set; }
 
@@ -33,32 +34,34 @@ namespace doanC_Admin.Models
 
         public string? Image { get; set; }
 
-        public double? Rating { get; set; } = 0;
+        public double Rating { get; set; } = 0;
 
-        public int? ReviewCount { get; set; } = 0;
+        public int ReviewCount { get; set; } = 0;
 
         public string? OpeningHours { get; set; }
 
         public string? PriceRange { get; set; }
 
+        // ✅ Owner & Approval fields
         public int? OwnerId { get; set; }
-
         public int? CreatedBy { get; set; }
+        public bool IsApproved { get; set; } = false;
+        public int? ApprovedBy { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public string? RejectionReason { get; set; } 
 
+        // Timestamps
         public DateTime CreatedAt { get; set; } = DateTime.Now;
-
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
-        public bool IsApproved { get; set; } = false;
-
-        public int? ApprovedBy { get; set; }
-
-        public DateTime? ApprovedAt { get; set; }
-
+        // Navigation properties
         [ForeignKey("CreatedBy")]
         public virtual AdminUser? Admin { get; set; }
 
         [ForeignKey("OwnerId")]
         public virtual StoreOwner? StoreOwner { get; set; }
+
+        [ForeignKey("ApprovedBy")]
+        public virtual AdminUser? Approver { get; set; }
     }
 }

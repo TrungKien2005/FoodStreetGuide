@@ -6,15 +6,17 @@ using doanC_Admin.Hubs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class DeviceTrackingController : ControllerBase
     {
         private readonly FoodStreetGuideDBContext _context;
-        private readonly IHubContext<DashboardHub> _hubContext;  // 👈 THÊM DÒNG NÀY
+        private readonly IHubContext<DashboardHub> _hubContext;
 
         // 👈 SỬA CONSTRUCTOR
         public DeviceTrackingController(FoodStreetGuideDBContext context, IHubContext<DashboardHub> hubContext)
@@ -135,6 +137,7 @@ namespace doanC_Admin.Controllers.Api
         }
 
         [HttpGet("GetActiveDevices")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetActiveDevices()
         {
             var activeDevices = await _context.DeviceTracking
@@ -156,6 +159,7 @@ namespace doanC_Admin.Controllers.Api
         }
 
         [HttpGet("GetStats")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetStats()
         {
             var stats = new

@@ -5,12 +5,14 @@ using QRCoder;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using QRCodeLib = QRCoder.QRCode;  // 👈 Alias để tránh ambiguous
+using QRCodeLib = QRCoder.QRCode;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class QrApiController : ControllerBase
     {
         private readonly FoodStreetGuideDBContext _context;

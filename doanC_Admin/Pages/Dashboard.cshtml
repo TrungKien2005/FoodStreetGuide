@@ -323,6 +323,62 @@
             </div>
         </div>
     </div>
+
+<!-- ========== ĐỊA ĐIỂM CHỜ DUYỆT ========== -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="chart-card">
+            <div class="card-header">
+                <i class="fas fa-clock"></i> Địa điểm chờ duyệt
+                <span class="badge-orange ms-2" id="pendingCount">@Model.PendingLocationsCount</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên địa điểm</th>
+                                <th>Chủ quán</th>
+                                <th>Địa chỉ</th>
+                                <th>Ngày đăng ký</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.PendingLocations != null && Model.PendingLocations.Any())
+                            {
+                                foreach (var loc in Model.PendingLocations)
+                                {
+                                    <tr>
+                                        <td>@loc.PointId</td>
+                                        <td><strong>@loc.Name</strong></td>
+                                        <td>@loc.OwnerName</td>
+                                        <td>@loc.Address</td>
+                                        <td>@loc.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success" onclick="approveLocation(@loc.PointId, true)">
+                                                <i class="fas fa-check"></i> Duyệt
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="approveLocation(@loc.PointId, false)">
+                                                <i class="fas fa-times"></i> Từ chối
+                                            </button>
+                                         </td>
+                                     </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="6" class="text-center">Không có địa điểm chờ duyệt</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ========== LỊCH SỬ ĐĂNG NHẬP (CÓ PHÂN TRANG) ========== -->
 <div class="row mt-4">
     <div class="col-12">
@@ -543,59 +599,6 @@
                                 else
                                 {
                                     <tr><td colspan="6" class="text-center">Chưa có dữ liệu</td></tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== ĐỊA ĐIỂM CHỜ DUYỆT ========== -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="chart-card">
-                <div class="card-header">
-                    <i class="fas fa-clock"></i> Địa điểm chờ duyệt
-                    <span class="badge-orange ms-2" id="pendingCount">@Model.TotalPendingPOI</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="pendingLocationsTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Tên địa điểm</th>
-                                    <th>Chủ quán</th>
-                                    <th>Ngày đăng ký</th>
-                                    <th>Thao tác</th>
-                                 </tr>
-                            </thead>
-                            <tbody id="pendingLocationsBody">
-                                @if (Model.PendingLocations != null && Model.PendingLocations.Any())
-                                {
-                                    foreach (var loc in Model.PendingLocations)
-                                    {
-                                        <tr>
-                                            <td>@loc.PointId</td>
-                                            <td>@loc.Name</td>
-                                            <td>@loc.OwnerName</td>
-                                            <td>@loc.CreatedAt.ToString("dd/MM/yyyy")</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-success" onclick="approveLocation(@loc.PointId, true)">
-                                                    <i class="fas fa-check"></i> Duyệt
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" onclick="approveLocation(@loc.PointId, false)">
-                                                    <i class="fas fa-times"></i> Từ chối
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                                else
-                                {
-                                    <tr><td colspan="5" class="text-center">Không có địa điểm chờ duyệt</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -908,5 +911,13 @@
                 window.location.href = `?page=1&pageSize=${pageSize}`;
             });
         }
+        // Lắng nghe sự kiện có POI mới
+        connection.on("NewPendingPoi", (poiName, ownerName) => {
+            console.log(`🆕 New pending POI: ${poiName} from ${ownerName}`);
+            showToast("Địa điểm mới", `${ownerName} vừa đăng ký địa điểm "${poiName}"`, "warning");
+
+            // Tự động reload sau 2 giây
+            setTimeout(() => location.reload(), 2000);
+        });
     </script>
 }

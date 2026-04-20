@@ -1,16 +1,13 @@
 ﻿using System.Net;
+using doanC_Admin.Filters;
+using doanC_Admin.Hubs;
 using doanC_Admin.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
-using doanC_Admin.Hubs;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// ============================================
-// ✅ PORT CHO RENDER
-// ============================================
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5225";
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
@@ -44,22 +41,35 @@ builder.Services.AddCors(options =>
                   .AllowAnyHeader();
         });
 });
+builder.Services.AddScoped<SessionFilter>();
+builder.Services.AddMvc(options =>
+{
+    options.Filters.Add<SessionFilter>();
+});
 
 // ============================================
 // ✅ CẤU HÌNH DATABASE THEO MÔI TRƯỜNG
 // ============================================
 var isProduction = builder.Environment.IsProduction();
 
-if (isProduction)
-{
-    builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-}
-else
-{
-    builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-}
+// ============================================
+// 🔧 TẠM THỜI COMMENT CODE POSTGRESQL
+// CHỈ DÙNG SQL SERVER
+// ============================================
+// if (isProduction)
+// {
+//     builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
+//         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// }
+// else
+// {
+//     builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
+//         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// }
+
+// ✅ TẠM THỜI CHỈ DÙNG SQL SERVER
+builder.Services.AddDbContext<FoodStreetGuideDBContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -76,22 +86,30 @@ using (var scope = app.Services.CreateScope())
         dbContext.Database.CanConnect();
         Console.WriteLine("✅ Database connected!");
 
+        // ============================================
+        // 🔧 COMMENT ĐOẠN TẠO BẢNG POSTGRESQL
+        // ============================================
         // Tạo bảng nếu chưa có (dùng SQL thuần)
-        await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS ""AdminUsers"" (
-                ""AdminId"" SERIAL PRIMARY KEY,
-                ""Username"" VARCHAR(50) NOT NULL UNIQUE,
-                ""PasswordHash"" VARCHAR(255) NOT NULL,
-                ""FullName"" VARCHAR(100),
-                ""Email"" VARCHAR(100),
-                ""Role"" VARCHAR(20) DEFAULT 'Admin',
-                ""IsActive"" BOOLEAN DEFAULT TRUE,
-                ""LastLogin"" TIMESTAMP,
-                ""LastLogout"" TIMESTAMP,
-                ""CreatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ""UpdatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        ");
+        // await dbContext.Database.ExecuteSqlRawAsync(@"
+        //     CREATE TABLE IF NOT EXISTS ""AdminUsers"" (
+        //         ""AdminId"" SERIAL PRIMARY KEY,
+        //         ""Username"" VARCHAR(50) NOT NULL UNIQUE,
+        //         ""PasswordHash"" VARCHAR(255) NOT NULL,
+        //         ""FullName"" VARCHAR(100),
+        //         ""Email"" VARCHAR(100),
+        //         ""Role"" VARCHAR(20) DEFAULT 'Admin',
+        //         ""IsActive"" BOOLEAN DEFAULT TRUE,
+        //         ""LastLogin"" TIMESTAMP,
+        //         ""LastLogout"" TIMESTAMP,
+        //         ""CreatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        //         ""UpdatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        //     );
+        // ");
+
+        // ✅ TẠM THỜI DÙNG CÁCH NÀY CHO SQL SERVER
+        // Tạo bảng bằng Entity Framework (nếu chưa có)
+        await dbContext.Database.EnsureCreatedAsync();
+        Console.WriteLine("✅ Database schema ensured!");
 
         // Kiểm tra và thêm dữ liệu
         var adminCount = dbContext.AdminUsers.Count();
@@ -150,7 +168,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
-
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 var currentDirectory = Directory.GetCurrentDirectory();
@@ -188,6 +206,47 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseRouting();
 app.UseSession();
 app.UseCors("AllowAll");
+// ========== MIDDLEWARE KIỂM TRA SESSION ==========
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+
+    // Danh sách đường dẫn công khai
+    var publicPaths = new[] { "/Login", "/Index", "/Error", "/AccessDenied", "/css", "/js", "/lib", "/favicon", "/swagger", "/api" };
+
+    if (publicPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)) || path == "/")
+    {
+        await next();
+        return;
+    }
+
+    var adminId = context.Session.GetString("AdminId");
+
+    // Chưa đăng nhập
+    if (string.IsNullOrEmpty(adminId))
+    {
+        context.Response.Redirect("/Login");
+        return;
+    }
+
+    var role = context.Session.GetString("Role") ?? "";
+
+    // Owner chỉ được vào /Owner/*
+    if (role == "Owner" && !path.StartsWith("/Owner", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.Redirect("/Owner/Dashboard");
+        return;
+    }
+
+    // Admin không được vào /Owner/*
+    if ((role == "Admin" || role == "SuperAdmin") && path.StartsWith("/Owner", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.Redirect("/Dashboard");
+        return;
+    }
+
+    await next();
+});
 app.UseAuthorization();
 
 app.MapHub<DashboardHub>("/dashboardHub");
@@ -196,24 +255,27 @@ app.MapControllers();
 
 app.Run();
 
-static string GetLocalIPAddress()
-{
-    try
-    {
-        var hostName = Dns.GetHostName();
-        var hostEntry = Dns.GetHostEntry(hostName);
-        foreach (var ip in hostEntry.AddressList)
-        {
-            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
-                !IPAddress.IsLoopback(ip))
-            {
-                return ip.ToString();
-            }
-        }
-        return "127.0.0.1";
-    }
-    catch
-    {
-        return "127.0.0.1";
-    }
-}
+// ============================================
+// 🔧 COMMENT HÀM GetLocalIPAddress (chưa dùng)
+// ============================================
+// static string GetLocalIPAddress()
+// {
+//     try
+//     {
+//         var hostName = Dns.GetHostName();
+//         var hostEntry = Dns.GetHostEntry(hostName);
+//         foreach (var ip in hostEntry.AddressList)
+//         {
+//             if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+//                 !IPAddress.IsLoopback(ip))
+//             {
+//                 return ip.ToString();
+//             }
+//         }
+//         return "127.0.0.1";
+//     }
+//     catch
+//     {
+//         return "127.0.0.1";
+//     }
+// }

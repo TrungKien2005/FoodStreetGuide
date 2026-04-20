@@ -1,0 +1,273 @@
+﻿@page
+@model doanC_Admin.Pages.Owner.MyLocationsModel
+@{
+    ViewData["Title"] = "Quản lý địa điểm";
+}
+
+<style>
+    .filter-bar {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .location-card {
+        background: white;
+        border-radius: 16px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        transition: all 0.3s;
+        border: 1px solid #ecf0f1;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+        .location-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+
+    .location-header {
+        padding: 1rem 1.25rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #ecf0f1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .location-body {
+        padding: 1.25rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: all 0.3s;
+    }
+
+        .stat-item:hover {
+            background: #FFF3E0;
+        }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #FF5722;
+    }
+
+    .badge-approved {
+        background: #28a745;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+    }
+
+    .badge-pending {
+        background: #ffc107;
+        color: #856404;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+    }
+
+    .badge-rejected {
+        background: #dc3545;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+            color: white;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 16px;
+    }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+        }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-store me-2 text-primary"></i>Quản lý địa điểm</h4>
+            <p class="text-muted mb-0">Quản lý danh sách địa điểm đã đăng ký</p>
+        </div>
+        <a href="/Owner/RegisterPoi" class="btn btn-gradient">
+            <i class="fas fa-plus-circle me-2"></i>Đăng ký địa điểm mới
+        </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="flex-grow-1">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Tìm kiếm địa điểm...">
+            </div>
+        </div>
+        <select id="statusFilter" class="form-select w-auto">
+            <option value="all">📋 Tất cả trạng thái</option>
+            <option value="approved">✅ Đã duyệt</option>
+            <option value="pending">⏳ Chờ duyệt</option>
+            <option value="rejected">❌ Từ chối</option>
+        </select>
+        <select id="categoryFilter" class="form-select w-auto">
+            <option value="all">📂 Tất cả danh mục</option>
+            <option value="Ăn vặt">🍢 Ăn vặt</option>
+            <option value="Đồ uống">☕ Đồ uống</option>
+            <option value="Đồ nướng">🔥 Đồ nướng</option>
+            <option value="Hải sản">🦐 Hải sản</option>
+            <option value="Nhà hàng">🍽️ Nhà hàng</option>
+            <option value="Quán ăn">🍜 Quán ăn</option>
+            <option value="Cafe">☕ Cafe</option>
+        </select>
+    </div>
+
+    <!-- Locations List -->
+    <div id="locationsContainer">
+        @if (Model.MyLocations.Any())
+        {
+            foreach (var loc in Model.MyLocations)
+            {
+                <div class="location-card" data-name="@loc.Name.ToLower()" data-status="@(loc.IsApproved ? "approved" : (!string.IsNullOrEmpty(loc.RejectionReason) ? "rejected" : "pending"))" data-category="@loc.Category">
+                    <div class="location-header">
+                        <div>
+                            <h5 class="mb-0">@loc.Name</h5>
+                            <small class="text-muted">
+                                <i class="fas fa-tag me-1"></i>@loc.Category | 
+                                <i class="fas fa-id-card me-1"></i>ID: @loc.PointId
+                            </small>
+                        </div>
+                        <div>
+                            @if (loc.IsApproved)
+                            {
+                                <span class="badge-approved me-2"><i class="fas fa-check-circle me-1"></i>Đã duyệt</span>
+                                <a href="/Owner/EditLocation?id=@loc.PointId" class="btn btn-sm btn-outline-warning me-1" title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            }
+                            else if (!string.IsNullOrEmpty(loc.RejectionReason))
+                            {
+                                <span class="badge-rejected me-2" title="@loc.RejectionReason">
+                                    <i class="fas fa-times-circle me-1"></i>Từ chối
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-pending me-2"><i class="fas fa-clock me-1"></i>Chờ duyệt</span>
+                            }
+                            <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(@loc.PointId, '@loc.Name')" title="Xóa">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="location-body">
+                        <p class="mb-2"><i class="fas fa-location-dot text-muted me-2"></i>@loc.Address</p>
+                        @if (!string.IsNullOrEmpty(loc.RejectionReason))
+                        {
+                            <div class="alert alert-danger alert-sm py-1 mb-2">
+                                <i class="fas fa-info-circle me-1"></i>Lý do từ chối: @loc.RejectionReason
+                            </div>
+                        }
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-number">@loc.TotalScans.ToString("N0")</div>
+                                <small class="text-muted">Tổng lượt quét</small>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">@loc.TotalListens.ToString("N0")</div>
+                                <small class="text-muted">Tổng lượt nghe</small>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">@loc.TodayVisitors.ToString("N0")</div>
+                                <small class="text-muted">Hôm nay</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-store-slash"></i>
+                <h5>Chưa có địa điểm nào</h5>
+                <p class="text-muted">Hãy đăng ký địa điểm đầu tiên của bạn</p>
+                <a href="/Owner/RegisterPoi" class="btn btn-gradient">
+                    <i class="fas fa-plus-circle me-2"></i>Đăng ký ngay
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function filterLocations() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        const category = document.getElementById('categoryFilter').value;
+        
+        document.querySelectorAll('.location-card').forEach(card => {
+            const name = card.dataset.name;
+            const cardStatus = card.dataset.status;
+            const cardCategory = card.dataset.category;
+            
+            let match = true;
+            if (searchTerm && !name.includes(searchTerm)) match = false;
+            if (status !== 'all' && cardStatus !== status) match = false;
+            if (category !== 'all' && cardCategory !== category) match = false;
+            
+            card.style.display = match ? 'block' : 'none';
+        });
+    }
+    
+    document.getElementById('searchInput').addEventListener('input', filterLocations);
+    document.getElementById('statusFilter').addEventListener('change', filterLocations);
+    document.getElementById('categoryFilter').addEventListener('change', filterLocations);
+    
+    function confirmDelete(id, name) {
+        if (confirm(`Bạn có chắc chắn muốn xóa địa điểm "${name}"?\n\n⚠️ Hành động này không thể hoàn tác!`)) {
+            window.location.href = `/Owner/MyLocations?handler=Delete&id=${id}`;
+        }
+    }
+</script>
