@@ -446,6 +446,9 @@ namespace doanC_.Views
             }
         }
 
+        // Sửa method HandlePlayButton - Thêm gọi API ghi nhận TTS
+
+        // Trong HandlePlayButton của PoiListPage
         private async Task HandlePlayButton(PoiItem selectedPoi)
         {
             try
@@ -453,8 +456,9 @@ namespace doanC_.Views
                 var locationPoint = _allLocationPoints?.FirstOrDefault(l => l.PointId == selectedPoi.PointId);
                 if (locationPoint == null) return;
 
-                // 👈 TRACK KHI NGHE AUDIO TỪ DANH SÁCH
                 TrackActivity("TTSListen", selectedPoi.PointId);
+
+                DateTime playStartTime = DateTime.Now;
 
                 var savedLanguage = Preferences.Get("AppLanguage", "vi");
                 var selectedVoice = Preferences.Get("SelectedVoice", AppResources.GetString("FemaleVoice"));
@@ -478,9 +482,26 @@ namespace doanC_.Views
                 try
                 {
                     await _ttsService.SpeakAsync(textToSpeak, GetLanguageCodeForTTS(savedLanguage), selectedVoice);
+
+                    var duration = (int)(DateTime.Now - playStartTime).TotalSeconds;
+
+                    // ✅ THÊM LOG TRƯỚC KHI GỌI API
+                    Debug.WriteLine($"[PoiListPage] 🚀 Calling RecordTTSListenAsync for POI: {selectedPoi.PointId}, duration: {duration}s");
+
+                    string deviceId = Microsoft.Maui.Devices.DeviceInfo.Current.Name ?? "Unknown";
+                    int languageId = GetLanguageId(savedLanguage);
+                    bool recorded = await _apiService.RecordTTSListenAsync(selectedPoi.PointId, languageId, duration, deviceId);
+
+                    Debug.WriteLine($"[PoiListPage] 📊 TTS Listen recorded: {recorded}");
+
+                    if (!recorded)
+                    {
+                        Debug.WriteLine($"[PoiListPage] ⚠️ Failed to record TTS listen - check API connection");
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Debug.WriteLine($"[PoiListPage] ❌ SpeakAsync error: {ex.Message}");
                     var audioCommentaryTitle = AppResources.GetString("AudioPlayerTitle");
                     await DisplayAlert(audioCommentaryTitle, textToSpeak, "OK");
                 }
@@ -489,6 +510,20 @@ namespace doanC_.Views
             {
                 Debug.WriteLine($"[PoiListPage] HandlePlayButton error: {ex.Message}");
             }
+        }
+
+        // Thêm helper method GetLanguageId
+        private int GetLanguageId(string languageCode)
+        {
+            return languageCode switch
+            {
+                "vi" => 1,
+                "en" => 2,
+                "zh" => 3,
+                "ja" => 4,
+                "ko" => 5,
+                _ => 1
+            };
         }
 
         private string GetLanguageCodeForTTS(string languageCode)

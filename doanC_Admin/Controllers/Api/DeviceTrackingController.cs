@@ -186,19 +186,86 @@ namespace doanC_Admin.Controllers.Api
         [AllowAnonymous]
         public async Task<IActionResult> GetStats()
         {
-            var stats = new
+            try
             {
-                TotalDevices = await _context.DeviceTracking.CountAsync(),
-                ActiveDevices = await _context.DeviceTracking
-                    .CountAsync(d => d.IsActive && d.LastActivity >= DateTime.Now.AddSeconds(-30)),
-                TotalScansToday = await _context.QRScanLogs
-                    .CountAsync(s => s.ScanTime >= DateTime.Today),
-                TotalListensToday = await _context.TTSLogs
-                    .CountAsync(t => t.PlayedAt >= DateTime.Today)
-            };
+                var today = DateTime.Today;
+                var last30Seconds = DateTime.Now.AddSeconds(-30);
+                var last30Minutes = DateTime.Now.AddMinutes(-30);
+                var totalScans = await _context.QRScanLogs.CountAsync();
+                var todayScans = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= today);
+                var scansLastHour = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Now.AddHours(-1));
 
-            return Ok(stats);
+                // Số thiết bị hoạt động trong 30 phút qua
+                var activeDevices = await _context.QRScanLogs
+                    .Where(s => s.ScanTime >= last30Minutes)
+                    .Select(s => s.DeviceId)
+                    .Distinct()
+                    .CountAsync();
+
+                // Tổng số thiết bị từng ghi nhận
+                var totalDevices = await _context.QRScanLogs
+                    .Select(s => s.DeviceId)
+                    .Distinct()
+                    .CountAsync();
+
+                var totalListens = await _context.TTSLogs.CountAsync();
+                var todayListens = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= today);
+                var listensLastHour = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= DateTime.Now.AddHours(-1));
+
+                // Thời gian nghe trung bình
+                var avgListenTime = 0.0;
+                var listenTimes = await _context.TTSLogs
+                    .Where(t => t.DurationSeconds.HasValue)
+                    .Select(t => t.DurationSeconds.Value)
+                    .ToListAsync();
+                if (listenTimes.Any())
+                {
+                    avgListenTime = listenTimes.Average();
+                }
+                var activeAdmins = await _context.AdminSessions
+                    .CountAsync(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5));
+
+                var totalAdmins = await _context.AdminUsers.CountAsync();
+                var deviceTrackingCount = await _context.DeviceTracking.CountAsync();
+                var activeDeviceTracking = await _context.DeviceTracking
+                    .CountAsync(d => d.IsActive && d.LastActivity >= last30Seconds);
+
+                var stats = new
+                {
+                    // Thống kê từ QRScanLogs
+                    totalScans = totalScans,
+                    todayScans = todayScans,
+                    scansLastHour = scansLastHour,
+                    activeDevices = activeDevices,
+                    totalDevices = totalDevices,
+
+                    // Thống kê từ TTSLogs
+                    totalListens = totalListens,
+                    todayListens = todayListens,
+                    listensLastHour = listensLastHour,
+                    avgListenTime = Math.Round(avgListenTime, 1),
+
+                    // Thống kê Admin
+                    activeAdmins = activeAdmins,
+                    totalAdmins = totalAdmins,
+
+                    // Thống kê từ DeviceTracking (cũ, để tương thích)
+                    deviceTrackingCount = deviceTrackingCount,
+                    activeDeviceTracking = activeDeviceTracking,
+
+                    // Thời gian cập nhật
+                    updatedAt = DateTime.Now
+                };
+
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetStats] Error: {ex.Message}");
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
+
         [HttpGet("GetActiveUsers")]
         public async Task<IActionResult> GetActiveUsers()
         {
@@ -213,6 +280,67 @@ namespace doanC_Admin.Controllers.Api
                 })
                 .ToListAsync();
             return Ok(users);
+        }
+
+        [HttpPost("SyncDeviceTracking")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SyncDeviceTracking()
+        {
+            try
+            {
+                // Lấy tất cả thiết bị từ QRScanLogs (DeviceId là string)
+                var devices = await _context.QRScanLogs
+                    .Where(s => !string.IsNullOrEmpty(s.DeviceId))
+                    .GroupBy(s => s.DeviceId)
+                    .Select(g => new
+                    {
+                        DeviceUniqueId = g.Key,           // string - đây là ID từ QRScanLogs
+                        TotalScans = g.Count(),
+                        LastScan = g.Max(s => s.ScanTime)
+                    })
+                    .ToListAsync();
+
+                foreach (var device in devices)
+                {
+                    // ✅ ĐÚNG: Tìm theo DeviceUniqueId (string so sánh với string)
+                    var existing = await _context.DeviceTracking
+                        .FirstOrDefaultAsync(d => d.DeviceUniqueId == device.DeviceUniqueId);
+
+                    var totalListens = await _context.TTSLogs
+                        .CountAsync(t => t.DeviceId != null && t.DeviceId == device.DeviceUniqueId);
+
+                    if (existing == null)
+                    {
+                        // ✅ ĐÚNG: Không gán DeviceId (int), để database tự tạo
+                        _context.DeviceTracking.Add(new DeviceTracking
+                        {
+                            DeviceUniqueId = device.DeviceUniqueId,  // Gán string vào DeviceUniqueId
+                            TotalScans = device.TotalScans,
+                            TotalListens = totalListens,
+                            LastActivity = device.LastScan,
+                            FirstSeen = device.LastScan,
+                            IsActive = device.LastScan >= DateTime.Now.AddMinutes(-30),
+                            Platform = "Unknown",
+                            DeviceName = device.DeviceUniqueId
+                        });
+                    }
+                    else
+                    {
+                        existing.TotalScans = device.TotalScans;
+                        existing.TotalListens = totalListens;
+                        existing.LastActivity = device.LastScan;
+                        existing.IsActive = device.LastScan >= DateTime.Now.AddMinutes(-30);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = $"Đã đồng bộ {devices.Count} thiết bị" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 

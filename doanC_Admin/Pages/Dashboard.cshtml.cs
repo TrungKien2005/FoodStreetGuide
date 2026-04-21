@@ -117,10 +117,20 @@ namespace doanC_Admin.Pages
             // ============================================
             // REAL-TIME DASHBOARD
             // ============================================
+            // ✅ SỬA: TodayScans - chỉ đếm trong hôm nay
             TodayScans = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Today);
-            ScansLastHour = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Now.AddHours(-1));
-            TodayVisitors = await _context.QRScanLogs.Select(s => s.DeviceId).Distinct().CountAsync();
 
+            // ✅ SỬA: ScansLastHour - chỉ đếm trong 1 giờ qua
+            ScansLastHour = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Now.AddHours(-1));
+
+            // ✅ SỬA: TodayVisitors - chỉ đếm deviceId riêng biệt trong hôm nay
+            TodayVisitors = await _context.QRScanLogs
+                .Where(s => s.ScanTime >= DateTime.Today)
+                .Select(s => s.DeviceId)
+                .Distinct()
+                .CountAsync();
+
+            // ✅ SỬA: ActiveUsersNow - Admin hoạt động trong 5 phút qua
             ActiveUsersNow = await _context.AdminSessions
                 .CountAsync(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5));
             TotalLoggedIn = await _context.AdminUsers.CountAsync();
@@ -329,6 +339,73 @@ namespace doanC_Admin.Pages
                 .ToListAsync();
 
             PendingLocationsCount = PendingLocations.Count;
+
+            // ============================================
+            // 9. ĐỒNG BỘ DEVICE TRACKING STATS
+            // ============================================
+            await SyncDeviceTrackingStats();
+        }
+
+        /// <summary>
+        /// Đồng bộ dữ liệu từ QRScanLogs và TTSLogs vào bảng DeviceTracking
+        /// </summary>
+        /// <summary>
+        /// Đồng bộ dữ liệu từ QRScanLogs và TTSLogs vào bảng DeviceTracking
+        /// </summary>
+        private async Task SyncDeviceTrackingStats()
+        {
+            try
+            {
+                // Lấy tất cả các thiết bị đã ghi nhận trong QRScanLogs
+                var devices = await _context.QRScanLogs
+                    .Where(s => !string.IsNullOrEmpty(s.DeviceId))
+                    .GroupBy(s => s.DeviceId)
+                    .Select(g => new
+                    {
+                        DeviceUniqueId = g.Key,  // Đổi tên cho rõ
+                        TotalScans = g.Count(),
+                        LastScan = g.Max(s => s.ScanTime)
+                    })
+                    .ToListAsync();
+
+                foreach (var device in devices)
+                {
+                    // ✅ SỬA DÒNG 374: So sánh DeviceUniqueId (string) với DeviceUniqueId (string)
+                    var existing = await _context.DeviceTracking
+                        .FirstOrDefaultAsync(d => d.DeviceUniqueId == device.DeviceUniqueId);  // Dùng DeviceUniqueId
+
+                    var totalListens = await _context.TTSLogs
+                        .CountAsync(t => t.DeviceId != null && t.DeviceId == device.DeviceUniqueId);
+
+                    if (existing == null)
+                    {
+                        // ✅ SỬA DÒNG 384: Gán vào DeviceUniqueId, không gán DeviceId
+                        _context.DeviceTracking.Add(new DeviceTracking
+                        {
+                            DeviceUniqueId = device.DeviceUniqueId ?? "Unknown",  // Gán vào DeviceUniqueId
+                            TotalScans = device.TotalScans,
+                            TotalListens = totalListens,
+                            LastActivity = device.LastScan,
+                            IsActive = device.LastScan >= DateTime.Now.AddMinutes(-30),
+                            Platform = "Unknown"
+                        });
+                    }
+                    else
+                    {
+                        existing.TotalScans = device.TotalScans;
+                        existing.TotalListens = totalListens;
+                        existing.LastActivity = device.LastScan;
+                        existing.IsActive = device.LastScan >= DateTime.Now.AddMinutes(-30);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"[SyncDeviceTracking] Đã đồng bộ {devices.Count} thiết bị");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SyncDeviceTracking] Lỗi: {ex.Message}");
+            }
         }
     }
 

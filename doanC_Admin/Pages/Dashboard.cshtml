@@ -721,6 +721,121 @@
 
         let isRefreshing = false;
 
+        // ========== HÀM CẬP NHẬT QR SCANS ==========
+        function updateTodayScans(increment = 1) {
+            const todayScansEl = document.getElementById('todayScans');
+            if (todayScansEl) {
+                let currentValue = parseInt(todayScansEl.innerText.replace(/,/g, '')) || 0;
+                currentValue += increment;
+                todayScansEl.innerText = currentValue.toLocaleString();
+                console.log(`📊 TodayScans updated: +${increment} = ${currentValue}`);
+            }
+        }
+
+        function updateScansLastHour(increment = 1) {
+            const scansLastHourEl = document.getElementById('scansLastHour');
+            if (scansLastHourEl) {
+                let currentValue = parseInt(scansLastHourEl.innerText) || 0;
+                currentValue += increment;
+                scansLastHourEl.innerText = currentValue;
+                console.log(`📊 ScansLastHour updated: +${increment} = ${currentValue}`);
+            }
+        }
+
+        // ========== HÀM CẬP NHẬT TTS LISTENS ==========
+        function updateTotalListens(increment = 1) {
+            const totalListensEl = document.getElementById('totalListens');
+            if (totalListensEl) {
+                let currentValue = parseInt(totalListensEl.innerText.replace(/,/g, '')) || 0;
+                currentValue += increment;
+                totalListensEl.innerText = currentValue.toLocaleString();
+                console.log(`🎧 TotalListens updated: +${increment} = ${currentValue}`);
+            }
+        }
+
+        function updateTodayTTSPlays(increment = 1) {
+            const todayTTSPlaysEl = document.getElementById('todayTTSPlays');
+            if (todayTTSPlaysEl) {
+                let currentValue = parseInt(todayTTSPlaysEl.innerText) || 0;
+                currentValue += increment;
+                todayTTSPlaysEl.innerText = currentValue;
+                console.log(`🎧 TodayTTSPlays updated: +${increment} = ${currentValue}`);
+            }
+        }
+
+        function updateAvgListenTime(newDurationSeconds) {
+            const avgListenTimeEl = document.getElementById('avgListenTime');
+            const totalListensEl = document.getElementById('totalListens');
+
+            if (avgListenTimeEl && totalListensEl && newDurationSeconds > 0) {
+                let totalListens = parseInt(totalListensEl.innerText.replace(/,/g, '')) || 0;
+                let currentAvg = parseFloat(avgListenTimeEl.innerText) || 0;
+                let totalDuration = currentAvg * totalListens;
+                totalDuration += newDurationSeconds;
+                totalListens += 1;
+                let newAvg = totalDuration / totalListens;
+                avgListenTimeEl.innerHTML = `${Math.round(newAvg)}<small>s</small>`;
+                console.log(`🎧 AvgListenTime updated: ${Math.round(newAvg)}s (from ${currentAvg}s)`);
+                totalListensEl.innerText = totalListens.toLocaleString();
+            }
+        }
+
+        // ========== HÀM CẬP NHẬT PENDING COUNT ==========
+        function updatePendingCount(increment = 1) {
+            const pendingCountEl = document.getElementById('pendingCount');
+            if (pendingCountEl) {
+                let current = parseInt(pendingCountEl.innerText) || 0;
+                pendingCountEl.innerText = current + increment;
+                console.log(`📋 PendingCount updated: ${current} -> ${current + increment}`);
+            }
+            const pendingPOIEl = document.getElementById('pendingPOI');
+            if (pendingPOIEl) {
+                let current = parseInt(pendingPOIEl.innerText) || 0;
+                pendingPOIEl.innerText = `${current + increment} chờ duyệt`;
+            }
+        }
+
+        function updateTotalLocations(increment = 1) {
+            const totalLocationsEl = document.getElementById('totalLocations');
+            if (totalLocationsEl) {
+                let current = parseInt(totalLocationsEl.innerText) || 0;
+                totalLocationsEl.innerText = current + increment;
+                console.log(`📍 TotalLocations updated: ${current} -> ${current + increment}`);
+            }
+        }
+
+        // ========== SIGNALR EVENT HANDLERS ==========
+
+        // Server gửi chữ thường - Phải lắng nghe đúng tên
+        connection.on("userconnected", function (connectionId) {
+            console.log(`👤 User connected: ${connectionId}`);
+            loadAdminUsers();
+        });
+
+        connection.on("userdisconnected", function (connectionId) {
+            console.log(`👋 User disconnected: ${connectionId}`);
+            loadAdminUsers();
+        });
+
+        connection.on("refreshdevicelist", function () {
+            console.log("🔄 Refresh device list");
+            loadActiveDevices();
+        });
+
+        connection.on("refreshstats", function () {
+            console.log("📊 Refresh stats");
+            loadStats();
+        });
+
+        connection.on("refreshdashboard", function () {
+            console.log("🔄 Refresh dashboard");
+            if (!isRefreshing) {
+                isRefreshing = true;
+                location.reload();
+            }
+        });
+
+        // Server gửi chữ hoa - Giữ nguyên
         connection.on("ReceiveDashboardUpdate", function () {
             console.log("📡 Dashboard update received - refreshing data...");
             if (!isRefreshing) {
@@ -738,7 +853,51 @@
 
         connection.on("ReceiveNotification", function (title, message, type) {
             console.log(`🔔 Notification: ${title} - ${message}`);
-            showToast(title, message, type || "success");
+
+            const notificationMessages = {
+                "QR Code mới": "🔔 Có người dùng vừa quét mã QR tại một địa điểm",
+                "Địa điểm mới cần duyệt": "🏪 Một địa điểm mới vừa được đăng ký, hãy kiểm tra và duyệt",
+                "Địa điểm được duyệt": "✅ Địa điểm đã được phê duyệt thành công",
+                "Địa điểm bị từ chối": "❌ Địa điểm đã bị từ chối duyệt"
+            };
+
+            let displayMessage = notificationMessages[title] || message;
+
+            if (title === "QR Code mới") {
+                updateTodayScans(1);
+                updateScansLastHour(1);
+            }
+
+            if (title === "Địa điểm mới cần duyệt") {
+                updatePendingCount(1);
+            }
+
+            if (title === "Địa điểm được duyệt") {
+                updatePendingCount(-1);
+                updateTotalLocations(1);
+            }
+
+            showToast(title, displayMessage, type || "success");
+        });
+
+        connection.on("NewQRScan", (locationName, deviceId) => {
+            console.log(`🔔 QR Scan at ${locationName} from device ${deviceId}`);
+            updateTodayScans(1);
+            updateScansLastHour(1);
+            showToast("QR Code mới", `🔔 Lượt quét mới tại: ${locationName}`, "info");
+            loadActiveDevices();
+            loadStats();
+        });
+
+        connection.on("NewPendingPoi", (poiName, ownerName) => {
+            console.log(`🆕 New pending POI: ${poiName} from ${ownerName}`);
+            updatePendingCount(1);
+            showToast("Địa điểm mới cần duyệt", `🏪 ${ownerName} vừa đăng ký địa điểm "${poiName}"`, "warning");
+        });
+
+        connection.on("RefreshDashboard", () => {
+            console.log("🔄 Refreshing dashboard data...");
+            location.reload();
         });
 
         connection.on("RefreshDeviceList", function () {
@@ -750,17 +909,15 @@
         });
 
         connection.on("UserConnected", function (connectionId) {
-            console.log(`👤 User connected: ${connectionId}`);
-            loadAdminUsers();
+            console.log(`👤 User connected (upper): ${connectionId}`);
         });
 
         connection.on("UserDisconnected", function (connectionId) {
-            console.log(`👋 User disconnected: ${connectionId}`);
-            loadAdminUsers();
+            console.log(`👋 User disconnected (upper): ${connectionId}`);
         });
 
         // ========== API CALLS ==========
-                async function loadActiveDevices() {
+        async function loadActiveDevices() {
             try {
                 const response = await fetch('/api/DeviceTracking/GetActiveDevices');
                 const devices = await response.json();
@@ -776,10 +933,15 @@
                             </tr>
                         `).join('');
                     } else {
-                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td>' +
+                                         '<td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td>' +
+                                         '<td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td>' +
+                                         '</table>';
                     }
-                    document.getElementById('deviceCount') && (document.getElementById('deviceCount').innerText = devices?.length || 0);
-                    document.getElementById('activeDevices') && (document.getElementById('activeDevices').innerText = devices?.length || 0);
+                    const deviceCountEl = document.getElementById('deviceCount');
+                    if (deviceCountEl) deviceCountEl.innerText = String(devices?.length ?? 0);
+                    const activeDevicesEl = document.getElementById('activeDevices');
+                    if (activeDevicesEl) activeDevicesEl.innerText = String(devices?.length ?? 0);
                 }
             } catch (error) {
                 console.error('Error loading devices:', error);
@@ -794,9 +956,35 @@
             try {
                 const response = await fetch('/api/DeviceTracking/GetStats');
                 const stats = await response.json();
+
                 if (stats) {
-                    document.getElementById('totalDevices') && (document.getElementById('totalDevices').innerText = stats.totalDevices || 0);
-                    document.getElementById('activeDevices') && (document.getElementById('activeDevices').innerText = stats.activeDevices || 0);
+                    const totalListensEl = document.getElementById('totalListens');
+                    if (totalListensEl) totalListensEl.innerText = (stats.totalListens || 0).toLocaleString();
+
+                    const todayTTSPlaysEl = document.getElementById('todayTTSPlays');
+                    if (todayTTSPlaysEl) todayTTSPlaysEl.innerText = stats.todayListens || 0;
+
+                    const todayScansEl = document.getElementById('todayScans');
+                    if (todayScansEl) todayScansEl.innerText = (stats.todayScans || 0).toLocaleString();
+
+                    const scansLastHourEl = document.getElementById('scansLastHour');
+                    if (scansLastHourEl) scansLastHourEl.innerText = stats.scansLastHour || 0;
+
+                    const activeDevicesEl = document.getElementById('activeDevices');
+                    if (activeDevicesEl) activeDevicesEl.innerText = stats.activeDevices || 0;
+
+                    const activeUsersEl = document.getElementById('activeUsers');
+                    if (activeUsersEl) activeUsersEl.innerText = stats.activeAdmins || 0;
+
+                    const totalLoggedInEl = document.getElementById('totalLoggedIn');
+                    if (totalLoggedInEl) totalLoggedInEl.innerText = stats.totalAdmins || 0;
+
+                    const avgListenTimeEl = document.getElementById('avgListenTime');
+                    if (avgListenTimeEl && stats.avgListenTime) {
+                        avgListenTimeEl.innerHTML = `${stats.avgListenTime}<small>s</small>`;
+                    }
+
+                    console.log('📊 Stats updated:', stats);
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
@@ -807,10 +995,7 @@
             try {
                 const response = await fetch('/api/Admin/GetActiveUsers');
                 const users = await response.json();
-                const tbody = document.getElementById('adminUsersTable');
-                if (tbody && users) {
-                    // Update table
-                }
+                console.log('👥 Active users:', users);
             } catch (error) {
                 console.error('Error loading admin users:', error);
             }
@@ -880,12 +1065,29 @@
         `;
         document.head.appendChild(style);
 
+        // ========== KHỞI TẠO GIÁ TRỊ BAN ĐẦU ==========
+        function initStatsValues() {
+            console.log('📊 Initial TodayScans:', document.getElementById('todayScans')?.innerText);
+            console.log('🎧 Initial TotalListens:', document.getElementById('totalListens')?.innerText);
+            console.log('⏱️ Initial AvgListenTime:', document.getElementById('avgListenTime')?.innerText);
+        }
+
+        // ========== PHÂN TRANG LỊCH SỬ ĐĂNG NHẬP ==========
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', function() {
+                const pageSize = this.value;
+                window.location.href = `?page=1&pageSize=${pageSize}`;
+            });
+        }
+
         // Kết nối SignalR
         connection.start()
             .then(function () {
                 console.log("✅ SignalR connected successfully!");
                 loadActiveDevices();
                 loadStats();
+                initStatsValues();
             })
             .catch(function (err) {
                 console.error("❌ SignalR connection failed: " + err.toString());
@@ -903,21 +1105,102 @@
         // Auto refresh mỗi 30 giây
         setInterval(loadActiveDevices, 30000);
         setInterval(loadStats, 60000);
-                // ========== PHÂN TRANG LỊCH SỬ ĐĂNG NHẬP ==========
-        const pageSizeSelect = document.getElementById('pageSizeSelect');
-        if (pageSizeSelect) {
-            pageSizeSelect.addEventListener('change', function() {
-                const pageSize = this.value;
-                window.location.href = `?page=1&pageSize=${pageSize}`;
+
+                // ========== HÀM CẬP NHẬT LẠI 2 BIỂU ĐỒ SAU KHI CÓ DỮ LIỆU MỚI ==========
+
+        // Lưu reference của charts để cập nhật sau
+        let topListenedChart = null;
+        let avgTimeChart = null;
+
+        // Hàm khởi tạo biểu đồ
+        function initCharts() {
+            // Top Listened Chart
+            topListenedChart = new Chart(document.getElementById('topListenedChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.TopListenedNames)),
+                    datasets: [{
+                        label: 'Lượt nghe',
+                        data: @Html.Raw(Json.Serialize(Model.TopListenedCounts)),
+                        backgroundColor: '#FF5722',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } } }
+            });
+
+            // Avg Time Chart
+            avgTimeChart = new Chart(document.getElementById('avgTimeChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.AvgTimeLabels)),
+                    datasets: [{
+                        label: 'Thời gian nghe (giây)',
+                        data: @Html.Raw(Json.Serialize(Model.AvgTimeData)),
+                        backgroundColor: '#FF8A65',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Giây' } } } }
             });
         }
-        // Lắng nghe sự kiện có POI mới
-        connection.on("NewPendingPoi", (poiName, ownerName) => {
-            console.log(`🆕 New pending POI: ${poiName} from ${ownerName}`);
-            showToast("Địa điểm mới", `${ownerName} vừa đăng ký địa điểm "${poiName}"`, "warning");
 
-            // Tự động reload sau 2 giây
-            setTimeout(() => location.reload(), 2000);
+        // Hàm reload dữ liệu cho 2 biểu đồ từ server
+        async function reloadChartData() {
+            try {
+                // Gọi API lấy dữ liệu mới nhất cho 2 biểu đồ
+                const response = await fetch('/api/RealTime/top-locations?metric=listens&take=5');
+                const topResult = await response.json();
+
+                if (topResult.success && topResult.data) {
+                    // Cập nhật Top Listened Chart
+                    topListenedChart.data.labels = topResult.data.map(item => item.locationName);
+                    topListenedChart.data.datasets[0].data = topResult.data.map(item => item.count);
+                    topListenedChart.update();
+                    console.log('📊 Top Listened Chart updated:', topResult.data);
+                }
+
+                const avgResponse = await fetch('/api/RealTime/top-locations?metric=avgtime&take=5');
+                const avgResult = await avgResponse.json();
+
+                if (avgResult.success && avgResult.data) {
+                    // Cập nhật Avg Time Chart
+                    avgTimeChart.data.labels = avgResult.data.map(item => item.locationName);
+                    avgTimeChart.data.datasets[0].data = avgResult.data.map(item => item.avgTime);
+                    avgTimeChart.update();
+                    console.log('⏱️ Avg Time Chart updated:', avgResult.data);
+                }
+            } catch (error) {
+                console.error('Error reloading chart data:', error);
+            }
+        }
+
+        connection.on("NewTTSListen", (locationName, durationSeconds, deviceId) => {
+            console.log(`🎧 New TTS listen at ${locationName} - Duration: ${durationSeconds}s from ${deviceId}`);
+
+            updateTotalListens(1);
+            updateTodayTTSPlays(1);
+            if (durationSeconds && durationSeconds > 0) {
+                updateAvgListenTime(durationSeconds);
+            }
+            reloadChartData();
+
+            showToast("Audio Guide mới", `🎧 Có lượt nghe thuyết minh tại: ${locationName}`, "info");
         });
+
+        // Sửa event NewQRScan
+        connection.on("NewQRScan", (locationName, deviceId) => {
+            console.log(`🔔 QR Scan at ${locationName} from device ${deviceId}`);
+            updateTodayScans(1);
+            updateScansLastHour(1);
+
+            // QR scan cũng có thể ảnh hưởng đến top listened (nếu QR dẫn đến nghe)
+            reloadChartData();
+
+            showToast("QR Code mới", `🔔 Lượt quét mới tại: ${locationName}`, "info");
+        });
+
+        // Khởi tạo charts khi trang load
+        initCharts();
     </script>
 }

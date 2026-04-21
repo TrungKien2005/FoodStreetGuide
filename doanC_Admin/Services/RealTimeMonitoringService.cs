@@ -1,13 +1,13 @@
 ﻿// Services/RealTimeMonitoringService.cs
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using doanC_Admin.Hubs;
-using doanC_Admin.Models;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using doanC_Admin.Hubs;
+using doanC_Admin.Models;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -151,12 +151,11 @@ namespace doanC_Admin.Services
                         _logger.LogInformation("🔔 New QR scan at {LocationName} from device {DeviceId}",
                             locationName, scan.DeviceId);
 
-                        await _hubContext.Clients.All.SendAsync("NewQRScan",
-                            locationName, scan.DeviceId);
+                        await _hubContext.Clients.All.SendAsync("NewQRScan", locationName, scan.DeviceId);
 
                         await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                            "📱 QR Code vừa được quét",
-                            $"Lượt quét mới tại: {locationName}",
+                            "QR Code mới",
+                            $"🔔 Lượt quét mới tại: {locationName}",
                             "info");
                     }
 
@@ -181,23 +180,31 @@ namespace doanC_Admin.Services
 
                 if (currentTTSListenCount > 0)
                 {
-                    _logger.LogInformation("🎧 {Count} new TTS listens detected", currentTTSListenCount);
-
                     var newListens = await context.TTSLogs
                         .Where(t => t.PlayedAt > _lastCheckTime)
                         .Include(t => t.LocationPoint)
                         .OrderByDescending(t => t.PlayedAt)
-                        .Take(5)
+                        .Take(10)
                         .ToListAsync();
 
                     foreach (var listen in newListens)
                     {
                         var locationName = listen.LocationPoint?.Name ?? "Địa điểm không xác định";
-                        _logger.LogDebug("🎧 Listen at {LocationName} for {Duration}s",
-                            locationName, listen.DurationSeconds);
+                        var duration = listen.DurationSeconds ?? 0;
+
+                        _logger.LogInformation("🎧 New TTS listen at {LocationName} - {Duration}s", locationName, duration);
+
+                        await _hubContext.Clients.All.SendAsync("NewTTSListen", locationName, duration, "MobileApp");
+
+                        await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                            "Audio Guide mới",
+                            $"🎧 Có lượt nghe thuyết minh tại: {locationName}",
+                            "info");
                     }
 
                     await UpdateRealtimeStats(context);
+                    await _hubContext.Clients.All.SendAsync("RefreshDashboard");
+
                     _lastTTSListenCount = currentTTSListenCount;
                 }
             }

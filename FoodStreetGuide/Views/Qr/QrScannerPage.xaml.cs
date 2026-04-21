@@ -1,15 +1,16 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
+using doanC_.Helpers;
 using doanC_.Models;
 using doanC_.Services;
+using doanC_.Services.Api;
 using doanC_.Services.Audio;
-using doanC_.Services.Localization;
 using doanC_.Services.Data;
+using doanC_.Services.Geo;
+using doanC_.Services.Localization;
+using doanC_.Services.LocationTracking;  // 👈 ĐÃ CÓ
 using doanC_.ViewModels;
 using ZXing.Net.Maui;
-using doanC_.Services.Geo;
-using System.Diagnostics;
-using doanC_.Helpers;
-using doanC_.Services.LocationTracking;  // 👈 ĐÃ CÓ
 
 namespace doanC_.Views
 {
@@ -22,7 +23,8 @@ namespace doanC_.Views
         private SQLiteService? _sqliteService;
         private string _currentLanguage = "vi";
         private bool _isSpeaking = false;
-        private DeviceTrackingService? _deviceTrackingService;  // 👈 THÊM DÒNG NÀY
+        private DeviceTrackingService? _deviceTrackingService;
+        private ApiService _apiService;
 
         public QrScannerPage()
         {
@@ -33,8 +35,8 @@ namespace doanC_.Views
             _ttsService = ServiceHelper.GetService<TTSService>() ?? new TTSService();
             _translationService = new HybridTranslationService();
             _sqliteService = ServiceHelper.GetService<SQLiteService>();
-            _deviceTrackingService = ServiceHelper.GetService<DeviceTrackingService>();  // 👈 THÊM DÒNG NÀY
-
+            _deviceTrackingService = ServiceHelper.GetService<DeviceTrackingService>();
+            _apiService = new ApiService();
             LoadSavedLanguage();
         }
 
@@ -50,7 +52,7 @@ namespace doanC_.Views
             base.OnAppearing();
 
             // Track activity khi mở QR Scanner
-            TrackActivity("OpenScanner");  // 👈 THÊM DÒNG NÀY
+            TrackActivity("OpenScanner"); 
 
             _viewModel.LoadLanguage();
             RequestCameraPermissionAndStartScanning();
@@ -109,6 +111,8 @@ namespace doanC_.Views
             });
         }
 
+        // Sửa method HandleQr - Thêm gọi API sau khi quét thành công
+
         private async Task HandleQr(string qrText)
         {
             try
@@ -122,8 +126,6 @@ namespace doanC_.Views
                 {
                     Debug.WriteLine($"[QrScannerPage] 📍 Detected POI ID format");
                     point = await HandlePoiIdQrAsync(qrText);
-
-                    // Lấy ID từ QR text
                     var parts = qrText.Split(':');
                     if (parts.Length == 2 && int.TryParse(parts[1], out int poiId))
                     {
@@ -142,20 +144,28 @@ namespace doanC_.Views
 
                 if (point != null)
                 {
-                    // 👈 TRACK QR SCAN THÀNH CÔNG
+                    // 👇👇👇 THÊM ĐOẠN CODE NÀY - GỌI API GHI NHẬN QR SCAN
+                    try
+                    {
+                        string deviceId = Microsoft.Maui.Devices.DeviceInfo.Current.Name ?? "Unknown";
+                        var location = await Geolocation.GetLastKnownLocationAsync();
+                        bool recorded = await _apiService.RecordQRScanAsync(scannedPointId, deviceId, location?.Latitude, location?.Longitude);
+                        Debug.WriteLine($"[QrScannerPage] 📊 QR Scan recorded: {recorded}");
+                    }
+                    catch (Exception apiEx)
+                    {
+                        Debug.WriteLine($"[QrScannerPage] ⚠️ Failed to record QR scan: {apiEx.Message}");
+                    }
+                    // 👆👆👆 KẾT THÚC ĐOẠN THÊM
+
                     TrackActivity("QRScan", scannedPointId);
-
                     await DisplayAlert(AppResources.GetString("OK"), $"{AppResources.GetString("AddedToFavorite")}: {point.Name}", AppResources.GetString("OK"));
-
                     GeoFenceService.Instance.AddPoint(point);
-
                     await ShowLanguageSelectionAndSpeakAsync(point);
                 }
                 else
                 {
-                    // 👈 TRACK QR SCAN THẤT BẠI
                     TrackActivity("QRScanFailed", 0);
-
                     await DisplayAlert("QR", qrText, AppResources.GetString("OK"));
                 }
             }

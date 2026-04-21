@@ -643,6 +643,8 @@ _originalPriceRange
             Debug.WriteLine($"[PoiDetailPage] ⚠️ Track activity error: {ex.Message}");
         }
     }
+    // Sửa method OnPlayPauseClicked - Thêm gọi API khi phát audio
+
     private async void OnPlayPauseClicked(object sender, EventArgs e)
     {
         try
@@ -665,7 +667,10 @@ _originalPriceRange
             _isPlaying = true;
             PlayPauseButton.Text = "⏸";
 
-            // 👈 TRACK KHI NGƯỜI DÙNG PHÁT AUDIO
+            // 👇👇👇 THÊM ĐOẠN CODE NÀY - GỌI API GHI NHẬN TTS LISTEN
+            DateTime playStartTime = DateTime.Now;
+            // 👆👆👆
+
             TrackActivity("TTSListen", _currentPoi.PointId);
 
             var sourceText = _originalDescription ?? _originalName;
@@ -694,6 +699,21 @@ _originalPriceRange
 
             await _ttsService.SpeakAsync(finalText, GetLanguageCodeForTTS(_currentLanguage));
 
+            // 👇👇👇 THÊM ĐOẠN CODE NÀY - TÍNH THỜI GIAN VÀ GỌI API
+            var duration = (int)(DateTime.Now - playStartTime).TotalSeconds;
+            try
+            {
+                string deviceId = Microsoft.Maui.Devices.DeviceInfo.Current.Name ?? "Unknown";
+                int languageId = GetLanguageId(_currentLanguage);
+                bool recorded = await _apiService.RecordTTSListenAsync(_currentPoi.PointId, languageId, duration, deviceId);
+                Debug.WriteLine($"[PoiDetailPage] 📊 TTS Listen recorded: {recorded}, duration: {duration}s");
+            }
+            catch (Exception apiEx)
+            {
+                Debug.WriteLine($"[PoiDetailPage] ⚠️ Failed to record TTS listen: {apiEx.Message}");
+            }
+            // 👆👆👆
+
             _isPlaying = false;
             PlayPauseButton.Text = "▶";
         }
@@ -705,6 +725,20 @@ _originalPriceRange
             _isPlaying = false;
             await DisplayAlert("Lỗi", $"Không thể phát âm thanh: {ex.Message}", "OK");
         }
+    }
+
+    // Thêm helper method để lấy LanguageId
+    private int GetLanguageId(string languageCode)
+    {
+        return languageCode switch
+        {
+            "vi" => 1,
+            "en" => 2,
+            "zh" => 3,
+            "ja" => 4,
+            "ko" => 5,
+            _ => 1
+        };
     }
     // 👈 THÊM TRACK KHI MỞ TRANG DETAIL
     protected override void OnAppearing()

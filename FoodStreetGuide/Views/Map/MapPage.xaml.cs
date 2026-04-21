@@ -393,7 +393,8 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         var nearest = _allPoints
             .Select(p => new { Point = p, Distance = CalculateDistance(_currentLocation.Latitude, _currentLocation.Longitude, p.Latitude, p.Longitude) })
             .Where(x => x.Distance <= _currentRadius)
-            .OrderBy(x => x.Distance)
+            .OrderBy(x => x.Distance)           // 👈 Sắp xếp theo khoảng cách tăng dần
+            .ThenBy(x => x.Point.PointId)       // 👈 Nếu khoảng cách bằng nhau thì ID nhỏ hơn được ưu tiên
             .FirstOrDefault();
 
         if (nearest != null)
@@ -536,7 +537,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         if (currentLanguage != _lastLanguage && !_isTranslating)
         {
             _currentLanguage = currentLanguage;
-            await TranslateAndDisplayPoints();
+            await TranslateAndDisplayPoints();  
             RefreshUITexts();
         }
 

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace doanC_Admin.Controllers.Api
 {
@@ -48,7 +49,7 @@ namespace doanC_Admin.Controllers.Api
                         .Take(take)
                         .Select(q => new
                         {
-                            Id = q.LogId,  // Dùng LogId (theo model QRScanLog)
+                            Id = q.LogId,
                             Type = "QR_SCAN",
                             Message = q.LocationPoint != null ? $"QR Code quét tại {q.LocationPoint.Name}" : "QR Code quét tại địa điểm không xác định",
                             Location = q.LocationPoint != null ? q.LocationPoint.Name : "Không xác định",
@@ -254,60 +255,6 @@ namespace doanC_Admin.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Lấy top địa điểm hoạt động nhiều nhất
-        /// </summary>
-        [HttpGet("top-locations")]
-        public async Task<IActionResult> GetTopLocations([FromQuery] int take = 5, [FromQuery] string metric = "scans")
-        {
-            try
-            {
-                if (metric == "scans")
-                {
-                    var topLocations = await _context.QRScanLogs
-                        .Include(q => q.LocationPoint)
-                        .Where(q => q.LocationPoint != null)
-                        .GroupBy(q => q.PointId)
-                        .Select(g => new
-                        {
-                            PointId = g.Key,
-                            LocationName = g.First().LocationPoint != null ? g.First().LocationPoint.Name : "Không xác định",
-                            Count = g.Count()
-                        })
-                        .OrderByDescending(x => x.Count)
-                        .Take(take)
-                        .ToListAsync();
-
-                    return Ok(new { success = true, data = topLocations, metric = "scans" });
-                }
-                else if (metric == "listens")
-                {
-                    var topLocations = await _context.TTSLogs
-                        .Include(t => t.LocationPoint)
-                        .Where(t => t.LocationPoint != null)
-                        .GroupBy(t => t.PointId)
-                        .Select(g => new
-                        {
-                            PointId = g.Key,
-                            LocationName = g.First().LocationPoint != null ? g.First().LocationPoint.Name : "Không xác định",
-                            Count = g.Count()
-                        })
-                        .OrderByDescending(x => x.Count)
-                        .Take(take)
-                        .ToListAsync();
-
-                    return Ok(new { success = true, data = topLocations, metric = "listens" });
-                }
-
-                return BadRequest(new { success = false, message = "Invalid metric. Use 'scans' or 'listens'" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error getting top locations: {ex.Message}");
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-        }
-
         // ========== POST ENDPOINTS ==========
 
         [HttpPost("NotifyNewScan")]
@@ -379,8 +326,211 @@ namespace doanC_Admin.Controllers.Api
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+        // ========== API NHẬN SỰ KIỆN TỪ MAUI APP ==========
+
+        [HttpPost("RecordQRScan")]
+        public async Task<IActionResult> RecordQRScan([FromBody] QRScanRecord request)
+        {
+            try
+            {
+                // Lưu vào database
+                var scanLog = new QRScanLog
+                {
+                    PointId = request.PointId,
+                    DeviceId = request.DeviceId,
+                    ScanTime = DateTime.Now,
+                    Latitude = request.Latitude,
+                    Longitude = request.Longitude
+                };
+                _context.QRScanLogs.Add(scanLog);
+                await _context.SaveChangesAsync();
+
+                // Lấy tên địa điểm
+                var location = await _context.LocationPoints
+                    .Where(l => l.PointId == request.PointId)
+                    .Select(l => l.Name)
+                    .FirstOrDefaultAsync();
+
+                // Gửi thông báo real-time
+                await _hubContext.Clients.All.SendAsync("NewQRScan", location ?? "Địa điểm", request.DeviceId);
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                    "QR Code mới",
+                    $"🔔 Lượt quét mới tại: {location ?? "Địa điểm"}",
+                    "info");
+                await _hubContext.Clients.All.SendAsync("RefreshDashboard");
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error recording QR scan: {ex.Message}");
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("RecordTTSListen")]
+        public async Task<IActionResult> RecordTTSListen([FromBody] TTSListenRecord request)
+        {
+            try
+            {
+                // ✅ SỬA: Thêm DeviceId khi lưu
+                var ttsLog = new TTSLog
+                {
+                    PointId = request.PointId,
+                    LanguageId = request.LanguageId,
+                    PlayedAt = DateTime.Now,
+                    DurationSeconds = request.DurationSeconds,
+                    DeviceId = request.DeviceId ?? "Unknown" 
+                };
+                _context.TTSLogs.Add(ttsLog);
+                await _context.SaveChangesAsync();
+
+                // Lấy tên địa điểm
+                var location = await _context.LocationPoints
+                    .Where(l => l.PointId == request.PointId)
+                    .Select(l => l.Name)
+                    .FirstOrDefaultAsync();
+
+                // Gửi thông báo real-time
+                await _hubContext.Clients.All.SendAsync("NewTTSListen",
+                    location ?? "Địa điểm",
+                    request.DurationSeconds,
+                    request.DeviceId ?? "MobileApp");
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                    "Audio Guide mới",
+                    $"🎧 Có lượt nghe thuyết minh tại: {location ?? "Địa điểm"}",
+                    "info");
+                await _hubContext.Clients.All.SendAsync("RefreshDashboard");
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error recording TTS listen: {ex.Message}");
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Request/Response classes
+        public class QRScanRecord
+        {
+            public int PointId { get; set; }
+            public string DeviceId { get; set; } = string.Empty;
+            public double? Latitude { get; set; }
+            public double? Longitude { get; set; }
+        }
+
+        public class TTSListenRecord
+        {
+            public int PointId { get; set; }
+            public int LanguageId { get; set; } = 1;
+            public int DurationSeconds { get; set; }
+            public string? DeviceId { get; set; }
+        }
+
+        // ========== TEST ENDPOINTS ==========
+
+        [HttpPost("NotifyNewListen")]
+        public async Task<IActionResult> NotifyNewListen([FromBody] ListenNotification notification)
+        {
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("NewTTSListen",
+                    notification.LocationName,
+                    notification.DurationSeconds,
+                    notification.DeviceId ?? "TestDevice");
+
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                    "Audio Guide mới",
+                    $"🎧 Test: {notification.LocationName} ({notification.DurationSeconds}s)",
+                    "info");
+
+                _logger.LogInformation($"Test TTS notification sent: {notification.LocationName}");
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("NotifyNewQRScan")]
+        public async Task<IActionResult> NotifyNewQRScan([FromBody] QRScanNotification notification)
+        {
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("NewQRScan",
+                    notification.LocationName,
+                    notification.DeviceId ?? "TestDevice");
+
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                    "QR Code mới",
+                    $"🔔 Test: {notification.LocationName}",
+                    "info");
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }   
+        // Trong RealTimeController.cs - Thêm API lấy top locations theo avg time
+
+        [HttpGet("top-locations")]
+        public async Task<IActionResult> GetTopLocations([FromQuery] string metric = "listens", [FromQuery] int take = 5)
+        {
+            try
+            {
+                if (metric == "listens")
+                {
+                    // Top địa điểm được nghe nhiều nhất
+                    var topLocations = await _context.TTSLogs
+                        .Include(t => t.LocationPoint)
+                        .Where(t => t.LocationPoint != null)
+                        .GroupBy(t => t.PointId)
+                        .Select(g => new
+                        {
+                            PointId = g.Key,
+                            LocationName = g.First().LocationPoint.Name,
+                            Count = g.Count()
+                        })
+                        .OrderByDescending(x => x.Count)
+                        .Take(take)
+                        .ToListAsync();
+
+                    return Ok(new { success = true, data = topLocations, metric = "listens" });
+                }
+                else if (metric == "avgtime")
+                {
+                    // Top địa điểm có thời gian nghe trung bình cao nhất
+                    var topAvgTime = await _context.TTSLogs
+                        .Include(t => t.LocationPoint)
+                        .Where(t => t.LocationPoint != null && t.DurationSeconds.HasValue)
+                        .GroupBy(t => t.PointId)
+                        .Select(g => new
+                        {
+                            PointId = g.Key,
+                            LocationName = g.First().LocationPoint.Name,
+                            AvgTime = g.Average(t => t.DurationSeconds.Value)
+                        })
+                        .OrderByDescending(x => x.AvgTime)
+                        .Take(take)
+                        .ToListAsync();
+
+                    return Ok(new { success = true, data = topAvgTime, metric = "avgtime" });
+                }
+
+                return BadRequest(new { success = false, message = "Invalid metric" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
     }
 
+    // ========== DTO CLASSES ==========
     public class ScanNotification
     {
         public int Count { get; set; }
@@ -398,5 +548,18 @@ namespace doanC_Admin.Controllers.Api
         public int ActiveUsers { get; set; }
         public int TodayScans { get; set; }
         public int PendingPOI { get; set; }
+    }
+
+    public class ListenNotification
+    {
+        public string LocationName { get; set; } = string.Empty;
+        public int DurationSeconds { get; set; } = 45;
+        public string? DeviceId { get; set; }
+    }
+
+    public class QRScanNotification
+    {
+        public string LocationName { get; set; } = string.Empty;
+        public string? DeviceId { get; set; }
     }
 }
