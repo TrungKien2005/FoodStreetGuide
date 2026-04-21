@@ -34,6 +34,8 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddHostedService<RealTimeMonitoringService>();
 
+// register device cleanup hosted service
+builder.Services.AddHostedService<DeviceCleanupService>();
 
 builder.Services.AddCors(options =>
 {

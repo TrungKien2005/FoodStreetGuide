@@ -17,10 +17,8 @@ namespace doanC_
         {
             InitializeComponent();
 
-            // 👈 KHỞI TẠO DEVICE TRACKING SERVICE
             _deviceTrackingService = ServiceHelper.GetService<DeviceTrackingService>();
 
-            // Tải ngôn ngữ đã lưu
             var appLanguage = Preferences.Get("AppLanguage", null);
             if (!string.IsNullOrEmpty(appLanguage))
             {
@@ -28,7 +26,6 @@ namespace doanC_
                 Debug.WriteLine($"[App] 🌐 Loaded saved language: {appLanguage}");
             }
 
-            // Kiểm tra nếu đã chọn ngôn ngữ, hiển thị AppShell; nếu chưa, hiển thị LanguageSelectionPage
             if (string.IsNullOrEmpty(appLanguage))
             {
                 MainPage = new NavigationPage(new Views.Language.LanguageSelectionPage());
@@ -45,7 +42,6 @@ namespace doanC_
 
             try
             {
-                // ✅ KHỞI TẠO SQLITE
                 var databaseService = ServiceHelper.GetService<SQLiteService>();
                 if (databaseService != null)
                 {
@@ -53,14 +49,12 @@ namespace doanC_
                     Debug.WriteLine("[App] ✅ SQLite database initialized");
                 }
 
-                // ✅ KHỞI TẠO DEVICE TRACKING (THÊM VÀO ĐÂY)
                 if (_deviceTrackingService != null)
                 {
                     await _deviceTrackingService.InitializeAsync();
                     Debug.WriteLine("[App] ✅ DeviceTrackingService initialized");
                 }
 
-                // ✅ KHỞI TẠO TRANSLATION SERVICE
                 var translationService = new HybridTranslationService();
                 if (translationService != null)
                 {
@@ -68,30 +62,12 @@ namespace doanC_
                     Debug.WriteLine("[App] ✅ HybridTranslationService initialized");
                 }
 
-                // ✅ GỌI API ĐỂ LẤY DỮ LIỆU TỪ SQL SERVER
                 await LoadDataFromApi();
 
-                // ✅ KIỂM TRA DỮ LIỆU TRONG SQLITE
                 if (databaseService != null)
                 {
                     var points = await databaseService.GetAllLocationPointsAsync();
                     Debug.WriteLine($"[App] 📍 SQLite has {points?.Count ?? 0} location points");
-
-                    if (points != null && points.Any())
-                    {
-                        foreach (var p in points.Take(5))
-                        {
-                            Debug.WriteLine($"[App]    - {p.Name}: ({p.Latitude}, {p.Longitude})");
-                        }
-                        if (points.Count > 5)
-                        {
-                            Debug.WriteLine($"[App]    ... và {points.Count - 5} điểm khác");
-                        }
-                    }
-                    else
-                    {
-                        Debug.WriteLine("[App] ⚠️ WARNING: No location points in SQLite! Geofence will not work.");
-                    }
                 }
 
                 Debug.WriteLine("[App] ✅ App started successfully");
@@ -104,15 +80,30 @@ namespace doanC_
             }
         }
 
-        // 👈 THÊM METHOD NÀY ĐỂ XỬ LÝ KHI APP TẮT
         protected override void OnSleep()
         {
             base.OnSleep();
-            _deviceTrackingService?.StopHeartbeat();
-            Debug.WriteLine("[App] 💤 App sleeping, stopped heartbeat");
+
+            try
+            {
+                // Try to notify server that app/device is offline immediately
+                if (_deviceTrackingService != null)
+                {
+                    // run synchronously to ensure server receives the call before process suspends in many platforms
+                    Task.Run(async () => await _deviceTrackingService.UntrackAsync()).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[App] ❌ Untrack error on sleep: {ex.Message}");
+            }
+            finally
+            {
+                _deviceTrackingService?.StopHeartbeat();
+                Debug.WriteLine("[App] 💤 App sleeping, stopped heartbeat and requested untrack");
+            }
         }
 
-        // 👈 THÊM METHOD NÀY ĐỂ XỬ LÝ KHI APP MỞ LẠI
         protected override void OnResume()
         {
             base.OnResume();
@@ -126,9 +117,6 @@ namespace doanC_
             });
         }
 
-        /// <summary>
-        /// Tải dữ liệu từ API và lưu vào SQLite
-        /// </summary>
         private async Task LoadDataFromApi()
         {
             try
@@ -150,14 +138,12 @@ namespace doanC_
                     return;
                 }
 
-                // Gọi API lấy dữ liệu
                 var locations = await apiService.GetLocationPointsAsync();
 
                 if (locations != null && locations.Any())
                 {
                     Debug.WriteLine($"[App] ✅ API trả về {locations.Count} địa điểm từ SQL Server");
 
-                    // Lưu vào SQLite (xóa cũ, thêm mới)
                     var existingPoints = await databaseService.GetAllLocationPointsAsync();
                     foreach (var point in existingPoints)
                     {
@@ -174,8 +160,6 @@ namespace doanC_
                 else
                 {
                     Debug.WriteLine("[App] ⚠️ API không trả về dữ liệu, kiểm tra kết nối!");
-
-                    // Kiểm tra kết nối API
                     var isConnected = await apiService.TestConnectionAsync();
                     Debug.WriteLine($"[App] 📡 API Connection test: {(isConnected ? "OK" : "FAILED")}");
                 }

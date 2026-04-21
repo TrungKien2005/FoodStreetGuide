@@ -18,7 +18,6 @@ namespace doanC_Admin.Controllers.Api
         private readonly FoodStreetGuideDBContext _context;
         private readonly IHubContext<DashboardHub> _hubContext;
 
-        // 👈 SỬA CONSTRUCTOR
         public DeviceTrackingController(FoodStreetGuideDBContext context, IHubContext<DashboardHub> hubContext)
         {
             _context = context;
@@ -48,7 +47,6 @@ namespace doanC_Admin.Controllers.Api
                     };
                     _context.DeviceTracking.Add(device);
 
-                    // 👈 GỬI THÔNG BÁO THIẾT BỊ MỚI
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification",
                         "🆕 Thiết bị mới", $"Thiết bị {request.DeviceName} vừa kết nối!", "info");
                 }
@@ -62,8 +60,38 @@ namespace doanC_Admin.Controllers.Api
 
                 await _context.SaveChangesAsync();
 
-                // 👈 GỬI CẬP NHẬT DANH SÁCH THIẾT BỊ
                 await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("Untrack")]
+        public async Task<IActionResult> UntrackDevice([FromBody] UntrackRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.DeviceUniqueId))
+                    return BadRequest(new { success = false, message = "deviceUniqueId required" });
+
+                var device = await _context.DeviceTracking
+                    .FirstOrDefaultAsync(d => d.DeviceUniqueId == request.DeviceUniqueId);
+
+                if (device != null)
+                {
+                    device.IsActive = false;
+                    device.LastActivity = DateTime.Now;
+                    await _context.SaveChangesAsync();
+
+                    // Notify clients to refresh device list immediately
+                    await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
+                    await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                        "📴 Thiết bị ngắt kết nối", $"Thiết bị {device.DeviceName ?? request.DeviceUniqueId} đã ngắt kết nối", "info");
+                }
 
                 return Ok(new { success = true });
             }
@@ -89,7 +117,6 @@ namespace doanC_Admin.Controllers.Api
                     {
                         device.TotalScans++;
 
-                        // 👈 GỬI REAL-TIME KHI CÓ QR SCAN
                         await _hubContext.Clients.All.SendAsync("ReceiveNewData", "QRScan", device.TotalScans);
                         await _hubContext.Clients.All.SendAsync("ReceiveNotification",
                             "📱 QR Code mới", $"Có 1 lượt quét mới từ {device.DeviceName}!", "success");
@@ -99,20 +126,17 @@ namespace doanC_Admin.Controllers.Api
                     {
                         device.TotalListens++;
 
-                        // 👈 GỬI REAL-TIME KHI CÓ TTS LISTEN
                         await _hubContext.Clients.All.SendAsync("ReceiveNewData", "TTSListen", device.TotalListens);
                         await _hubContext.Clients.All.SendAsync("ReceiveNotification",
                             "🎧 Audio được nghe", $"Đã có 1 lượt nghe từ {device.DeviceName}!", "info");
                     }
                     else if (request.ActivityType == "ViewList")
                     {
-                        // 👈 GỬI REAL-TIME KHI XEM DANH SÁCH
                         await _hubContext.Clients.All.SendAsync("ReceiveNotification",
                             "👁️ Xem danh sách", $"Người dùng đang xem danh sách địa điểm", "info");
                     }
                     else if (request.ActivityType == "ViewDetail")
                     {
-                        // 👈 GỬI REAL-TIME KHI XEM CHI TIẾT
                         var point = await _context.LocationPoints
                             .Where(p => p.PointId == request.PointId)
                             .Select(p => p.Name)
@@ -124,7 +148,6 @@ namespace doanC_Admin.Controllers.Api
 
                     await _context.SaveChangesAsync();
 
-                    // 👈 GỬI CẬP NHẬT DASHBOARD
                     await _hubContext.Clients.All.SendAsync("RefreshStats");
                 }
 
@@ -140,8 +163,9 @@ namespace doanC_Admin.Controllers.Api
         [AllowAnonymous]
         public async Task<IActionResult> GetActiveDevices()
         {
+            // Changed: consider active devices within last 30 seconds for faster result
             var activeDevices = await _context.DeviceTracking
-                .Where(d => d.IsActive && d.LastActivity >= DateTime.Now.AddMinutes(-5))
+                .Where(d => d.IsActive && d.LastActivity >= DateTime.Now.AddSeconds(-30))
                 .OrderByDescending(d => d.LastActivity)
                 .Select(d => new
                 {
@@ -166,7 +190,7 @@ namespace doanC_Admin.Controllers.Api
             {
                 TotalDevices = await _context.DeviceTracking.CountAsync(),
                 ActiveDevices = await _context.DeviceTracking
-                    .CountAsync(d => d.IsActive && d.LastActivity >= DateTime.Now.AddMinutes(-5)),
+                    .CountAsync(d => d.IsActive && d.LastActivity >= DateTime.Now.AddSeconds(-30)),
                 TotalScansToday = await _context.QRScanLogs
                     .CountAsync(s => s.ScanTime >= DateTime.Today),
                 TotalListensToday = await _context.TTSLogs
@@ -209,5 +233,10 @@ namespace doanC_Admin.Controllers.Api
         public string ActivityType { get; set; } = string.Empty;
         public int PointId { get; set; }
         public DateTime Timestamp { get; set; }
+    }
+
+    public class UntrackRequest
+    {
+        public string DeviceUniqueId { get; set; } = string.Empty;
     }
 }
