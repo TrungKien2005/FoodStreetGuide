@@ -51,10 +51,10 @@ namespace doanC_Admin.Models
         public string? RejectionReason { get; set; }
 
         // Statistics
-        public int TotalLocations { get; set; } = 0;
-        public int PendingLocations { get; set; } = 0;
-        public int ApprovedLocations { get; set; } = 0;
-        public int RejectedLocations { get; set; } = 0;
+        public int? TotalLocations { get; set; } = 0;
+        public int? PendingLocations { get; set; } = 0;
+        public int? ApprovedLocations { get; set; } = 0;
+        public int? RejectedLocations { get; set; } = 0;
 
         // Timestamps
         public DateTime CreatedAt { get; set; } = DateTime.Now;

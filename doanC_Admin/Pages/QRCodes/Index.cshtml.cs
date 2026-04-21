@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+﻿// Pages/QRCodes/Index.cshtml.cs
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using doanC_Admin.Models;
 using System;
@@ -35,6 +36,14 @@ namespace doanC_Admin.Pages.QRCodes
                 var location = await _context.LocationPoints
                     .FirstOrDefaultAsync(l => l.PointId == qr.PointId);
 
+                // Tạo đường dẫn đúng cho ảnh từ wwwroot/qr
+                string qrImagePath = null;
+                if (!string.IsNullOrEmpty(qr.QrImagePath))
+                {
+                    // Đảm bảo đường dẫn có định dạng /qr/tên_file
+                    qrImagePath = $"/qr/{qr.QrImagePath}";
+                }
+
                 QRCodes.Add(new QRCodeDto
                 {
                     QrId = qr.QrId,
@@ -42,7 +51,7 @@ namespace doanC_Admin.Pages.QRCodes
                     Name = qr.Name ?? $"QR_{qr.PointId}",
                     LocationName = location?.Name ?? "Không xác định",
                     QrContent = qr.QrContent ?? $"https://foodstreetguide.com/location/{qr.PointId}",
-                    QrImagePath = !string.IsNullOrEmpty(qr.QrImagePath) ? $"/qr/{qr.QrImagePath}" : null,
+                    QrImagePath = qrImagePath,
                     CreatedAt = qr.CreatedAt ?? DateTime.Now,
                     IsActive = true
                 });

@@ -10,7 +10,7 @@ namespace doanC_.Config
         private const int Port = 5225;
         private const string ApiPath = "/api/LocationApi";
         // ========== IP THỰC CỦA MÁY TÍNH ==========
-        private const string LocalIP = "192.168.1.224";
+        private const string LocalIP = "172.20.10.11";
 
         // ========== NGROK URL (CẬP NHẬT MỖI KHI CHẠY) ==========
         private const string NgrokUrl = "https://tapeless-nondivergently-eleni.ngrok-free.dev/api/LocationApi";

@@ -58,7 +58,7 @@ namespace doanC_Admin.Models
                 entity.Property(e => e.ApprovedAt).HasColumnName("ApprovedAt");
 
                 // Relationships
-                entity.HasOne(e => e.StoreOwner)
+                entity.HasOne(e => e.Owner)
                       .WithMany()
                       .HasForeignKey(e => e.OwnerId)
                       .OnDelete(DeleteBehavior.Restrict);

@@ -5,7 +5,6 @@ using QRCoder;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using QRCodeLib = QRCoder.QRCode;
 using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Controllers.Api
@@ -16,10 +15,12 @@ namespace doanC_Admin.Controllers.Api
     public class QrApiController : ControllerBase
     {
         private readonly FoodStreetGuideDBContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public QrApiController(FoodStreetGuideDBContext context)
+        public QrApiController(FoodStreetGuideDBContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         [HttpPost("GenerateQR")]
@@ -34,26 +35,27 @@ namespace doanC_Admin.Controllers.Api
                     return BadRequest(new { success = false, message = "Không tìm thấy địa điểm" });
 
                 var qrContent = $"https://foodstreetguide.com/location/{request.PointId}";
-                var qrName = string.IsNullOrEmpty(request.Name) ? $"QR_{request.PointId}" : request.Name;
+                var qrName = string.IsNullOrEmpty(request.Name) ? $"QR_{request.PointId}_{DateTime.Now:yyyyMMddHHmmss}" : request.Name;
 
+                // Tạo QR Code
                 using var generator = new QRCodeGenerator();
                 using var qrCodeData = generator.CreateQrCode(qrContent, QRCodeGenerator.ECCLevel.Q);
                 var qrCode = new PngByteQRCode(qrCodeData);
                 byte[] qrCodeBytes = qrCode.GetGraphic(request.Size);
 
-                // Lưu ảnh vào thư mục
+                // Lưu ảnh vào wwwroot/qr
                 var fileName = $"qr_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid():N}.png";
                 var qrPath = GetQrImagesPath();
                 var filePath = Path.Combine(qrPath, fileName);
                 await System.IO.File.WriteAllBytesAsync(filePath, qrCodeBytes);
 
-                // Lưu vào database - dùng Models.QRCode để tránh ambiguous
+                // Lưu vào database
                 var qrRecord = new Models.QRCode
                 {
                     PointId = request.PointId,
                     Name = qrName,
                     QrContent = qrContent,
-                    QrImagePath = fileName,
+                    QrImagePath = fileName, // Chỉ lưu tên file
                     CreatedAt = DateTime.Now
                 };
 
@@ -63,6 +65,8 @@ namespace doanC_Admin.Controllers.Api
                 return Ok(new
                 {
                     success = true,
+                    message = "Tạo QR Code thành công",
+                    qrId = qrRecord.QrId,
                     qrImagePath = $"/qr/{fileName}",
                     qrName = qrName,
                     locationName = location.Name
@@ -77,31 +81,48 @@ namespace doanC_Admin.Controllers.Api
         [HttpGet("GetQRImage")]
         public async Task<IActionResult> GetQRImage(int id)
         {
-            var qr = await _context.QRCodes.FindAsync(id);
-            if (qr == null)
-                return NotFound();
-
-            // Nếu có ảnh lưu trữ, trả về file
-            if (!string.IsNullOrEmpty(qr.QrImagePath))
+            try
             {
-                var qrPath = GetQrImagesPath();
-                var filePath = Path.Combine(qrPath, qr.QrImagePath);
+                var qr = await _context.QRCodes.FindAsync(id);
+                if (qr == null)
+                    return NotFound(new { success = false, message = "Không tìm thấy QR Code" });
 
-                if (System.IO.File.Exists(filePath))
+                // Nếu có ảnh lưu trữ trong wwwroot/qr, trả về file
+                if (!string.IsNullOrEmpty(qr.QrImagePath))
                 {
-                    var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-                    return File(fileBytes, "image/png", $"{qr.Name ?? "qrcode"}.png");
+                    var qrPath = GetQrImagesPath();
+                    var filePath = Path.Combine(qrPath, qr.QrImagePath);
+
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                        return File(fileBytes, "image/png");
+                    }
                 }
+
+                // Nếu không có ảnh hoặc ảnh bị mất, tạo mới từ content
+                var qrContent = qr.QrContent ?? $"https://foodstreetguide.com/location/{qr.PointId}";
+                using var generator = new QRCodeGenerator();
+                using var qrCodeData = generator.CreateQrCode(qrContent, QRCodeGenerator.ECCLevel.Q);
+                var qrCode = new PngByteQRCode(qrCodeData);
+                byte[] qrCodeBytes = qrCode.GetGraphic(300);
+
+                // Lưu lại ảnh mới tạo
+                var fileName = $"qr_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid():N}.png";
+                var qrPath2 = GetQrImagesPath();
+                var filePath2 = Path.Combine(qrPath2, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath2, qrCodeBytes);
+
+                // Cập nhật database
+                qr.QrImagePath = fileName;
+                await _context.SaveChangesAsync();
+
+                return File(qrCodeBytes, "image/png");
             }
-
-            // Nếu không có ảnh, tạo mới từ content
-            var qrContent = qr.QrContent ?? $"https://foodstreetguide.com/location/{qr.PointId}";
-            using var generator = new QRCodeGenerator();
-            using var qrCodeData = generator.CreateQrCode(qrContent, QRCodeGenerator.ECCLevel.Q);
-            var qrCode = new PngByteQRCode(qrCodeData);
-            byte[] qrCodeBytes = qrCode.GetGraphic(300);
-
-            return File(qrCodeBytes, "image/png", $"{qr.Name ?? "qrcode"}.png");
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpPost("UpdateQR")]
@@ -122,6 +143,20 @@ namespace doanC_Admin.Controllers.Api
                 // Cập nhật ảnh thủ công
                 if (imageFile != null && imageFile.Length > 0)
                 {
+                    // Kiểm tra định dạng file
+                    var allowedExtensions = new[] { ".png", ".jpg", ".jpeg" };
+                    var extension = Path.GetExtension(imageFile.FileName).ToLower();
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        return BadRequest(new { success = false, message = "Chỉ chấp nhận file PNG, JPG, JPEG" });
+                    }
+
+                    // Kiểm tra kích thước (max 2MB)
+                    if (imageFile.Length > 2 * 1024 * 1024)
+                    {
+                        return BadRequest(new { success = false, message = "Kích thước file không được vượt quá 2MB" });
+                    }
+
                     // Xóa ảnh cũ
                     if (!string.IsNullOrEmpty(qr.QrImagePath))
                     {
@@ -134,7 +169,10 @@ namespace doanC_Admin.Controllers.Api
                 }
 
                 await _context.SaveChangesAsync();
-                return Ok(new { success = true });
+
+                // Trả về đường dẫn ảnh mới
+                string imageUrl = $"/qr/{qr.QrImagePath}";
+                return Ok(new { success = true, message = "Cập nhật thành công", imagePath = imageUrl });
             }
             catch (Exception ex)
             {
@@ -145,27 +183,90 @@ namespace doanC_Admin.Controllers.Api
         [HttpDelete("DeleteQR")]
         public async Task<IActionResult> DeleteQR(int id)
         {
-            var qr = await _context.QRCodes.FindAsync(id);
-            if (qr == null)
-                return NotFound();
-
-            // Xóa file ảnh
-            if (!string.IsNullOrEmpty(qr.QrImagePath))
+            try
             {
-                DeleteOldImage(qr.QrImagePath);
+                var qr = await _context.QRCodes.FindAsync(id);
+                if (qr == null)
+                    return NotFound(new { success = false, message = "Không tìm thấy QR Code" });
+
+                // Xóa file ảnh
+                if (!string.IsNullOrEmpty(qr.QrImagePath))
+                {
+                    DeleteOldImage(qr.QrImagePath);
+                }
+
+                _context.QRCodes.Remove(qr);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = "Xóa QR Code thành công" });
             }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
 
-            _context.QRCodes.Remove(qr);
-            await _context.SaveChangesAsync();
+        [HttpGet("GetAllQRCodes")]
+        public async Task<IActionResult> GetAllQRCodes()
+        {
+            try
+            {
+                var qrCodes = await _context.QRCodes
+                    .OrderByDescending(q => q.CreatedAt)
+                    .Select(q => new
+                    {
+                        q.QrId,
+                        q.PointId,
+                        q.Name,
+                        q.QrContent,
+                        QrImagePath = $"/qr/{q.QrImagePath}",
+                        q.CreatedAt,
+                        LocationName = _context.LocationPoints
+                            .Where(l => l.PointId == q.PointId)
+                            .Select(l => l.Name)
+                            .FirstOrDefault() ?? "Không xác định"
+                    })
+                    .ToListAsync();
 
-            return Ok(new { success = true });
+                return Ok(qrCodes);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("GetQRByPointId")]
+        public async Task<IActionResult> GetQRByPointId(int pointId)
+        {
+            try
+            {
+                var qrCodes = await _context.QRCodes
+                    .Where(q => q.PointId == pointId)
+                    .OrderByDescending(q => q.CreatedAt)
+                    .Select(q => new
+                    {
+                        q.QrId,
+                        q.PointId,
+                        q.Name,
+                        q.QrContent,
+                        QrImagePath = $"/qr/{q.QrImagePath}",
+                        q.CreatedAt
+                    })
+                    .ToListAsync();
+
+                return Ok(qrCodes);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         private string GetQrImagesPath()
         {
-            var currentDirectory = Directory.GetCurrentDirectory();
-            var solutionDirectory = Directory.GetParent(currentDirectory)?.FullName ?? currentDirectory;
-            var qrPath = Path.Combine(solutionDirectory, "FoodStreetGuide", "Resources", "qr");
+            // Sử dụng wwwroot/qr thay vì Resources/qr
+            var qrPath = Path.Combine(_environment.WebRootPath, "qr");
 
             if (!Directory.Exists(qrPath))
             {
@@ -199,11 +300,12 @@ namespace doanC_Admin.Controllers.Api
                 if (System.IO.File.Exists(filePath))
                 {
                     System.IO.File.Delete(filePath);
+                    Console.WriteLine($"Deleted old image: {imageName}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting image: {ex.Message}");
+                Console.WriteLine($"Error deleting image {imageName}: {ex.Message}");
             }
         }
     }

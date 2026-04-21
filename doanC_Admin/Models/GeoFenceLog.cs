@@ -16,5 +16,7 @@ namespace doanC_Admin.Models
         public DateTime? EnterTime { get; set; }
         public DateTime? ExitTime { get; set; }
         public int? DurationSeconds { get; set; }
+        [ForeignKey("PointId")]
+        public virtual LocationPoint? LocationPoint { get; set; }
     }
 }

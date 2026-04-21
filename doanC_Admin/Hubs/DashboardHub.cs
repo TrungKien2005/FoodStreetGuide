@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace doanC_Admin.Hubs
 {
     public class DashboardHub : Hub
     {
+        private static readonly ConcurrentDictionary<string, string> _connectedUsers = new();
+
         public async Task SendDashboardUpdate()
         {
             await Clients.All.SendAsync("ReceiveDashboardUpdate");
@@ -35,16 +38,42 @@ namespace doanC_Admin.Hubs
             await Clients.All.SendAsync("RefreshDashboard");
         }
 
+        public async Task NotifyNewPendingPoi(string poiName, string ownerName)
+        {
+            await Clients.All.SendAsync("NewPendingPoi", poiName, ownerName);
+        }
+
+        public async Task NotifyNewQRScan(string locationName, string deviceId)
+        {
+            await Clients.All.SendAsync("NewQRScan", locationName, deviceId);
+        }
+
+        public async Task UpdateRealtimeStats(object stats)
+        {
+            await Clients.All.SendAsync("UpdateRealtimeStats", stats);
+        }
+
         public override async Task OnConnectedAsync()
         {
-            await Clients.All.SendAsync("UserConnected", Context.ConnectionId);
+            var userId = Context.UserIdentifier ?? Context.ConnectionId;
+            _connectedUsers.TryAdd(Context.ConnectionId, userId);
+
+            await Clients.All.SendAsync("UserConnected", userId);
+            await Clients.All.SendAsync("UpdateOnlineCount", _connectedUsers.Count);
             await base.OnConnectedAsync();
         }
 
-        public override async Task OnDisconnectedAsync(System.Exception exception)
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
+            _connectedUsers.TryRemove(Context.ConnectionId, out _);
             await Clients.All.SendAsync("UserDisconnected", Context.ConnectionId);
+            await Clients.All.SendAsync("UpdateOnlineCount", _connectedUsers.Count);
             await base.OnDisconnectedAsync(exception);
+        }
+
+        public int GetOnlineUsersCount()
+        {
+            return _connectedUsers.Count;
         }
     }
 }

@@ -5,7 +5,7 @@
       {
         "Path": "FoodStreetGuide\\doanC#.csproj",
         "Action": "Start",
-        "DebugTarget": "Pixel 7 - API 34 (Android 14.0 - API 34)"
+        "DebugTarget": "Samsung SM-A325F (Android 12.0 - API 31)"
       },
       {
         "Path": "doanC_Admin\\doanC_Admin.csproj",

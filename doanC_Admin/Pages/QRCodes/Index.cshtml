@@ -300,6 +300,52 @@
         margin-top: 0.5rem;
         border-radius: 8px;
     }
+    /* Thêm vào phần <style> hiện có */
+    .preview-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .preview-image {
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+        .preview-image:hover {
+            transform: scale(1.05);
+        }
+
+    .upload-area {
+        transition: all 0.3s ease;
+    }
+
+        .upload-area.drag-over {
+            border-color: #FF5722;
+            background-color: #fff3e0;
+        }
+
+    /* Loading spinner cho nút */
+    .btn-generate:disabled,
+    .btn-primary:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    /* Responsive cho modal trên mobile */
+@@media (max-width: 768px) {
+        .qr-modal-content
+
+    {
+        width: 95%;
+        padding: 1rem;
+    }
+
+    .preview-image {
+        max-width: 150px;
+        max-height: 150px;
+    }
+
+    }
 </style>
 
 <div class="container-fluid">
@@ -468,6 +514,7 @@
 </div>
 
 <!-- Modal Sửa QR (Upload ảnh thủ công) -->
+<!-- Sửa lại phần upload-area trong Modal Sửa -->
 <div id="editModal" class="qr-modal">
     <div class="qr-modal-content" style="max-width: 450px;">
         <span class="qr-modal-close" onclick="closeEditModal()">&times;</span>
@@ -479,13 +526,15 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Tải ảnh QR thủ công</label>
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('qrImageFile').click()">
+            <div class="upload-area" id="uploadArea">
                 <i class="fas fa-cloud-upload-alt fa-2x" style="color: #FF5722;"></i>
                 <p class="mb-0">Nhấp để chọn ảnh QR</p>
                 <small class="text-muted">Hỗ trợ PNG, JPG, JPEG</small>
                 <input type="file" id="qrImageFile" accept="image/png,image/jpeg,image/jpg" style="display: none;" />
             </div>
-            <div id="imagePreview" class="text-center mt-2"></div>
+            <div id="imagePreview" class="text-center mt-3">
+                <!-- Preview sẽ hiển thị ở đây -->
+            </div>
         </div>
         <input type="hidden" id="editQrId" />
         <div class="mt-3">
@@ -509,7 +558,7 @@
         const qrName = document.getElementById('qrName').value;
 
         if (!locationId) {
-            alert('Vui lòng chọn địa điểm');
+            showNotification('Vui lòng chọn địa điểm', 'warning');
             return;
         }
 
@@ -530,26 +579,124 @@
             const result = await response.json();
 
             if (result.success) {
-                location.reload();
+                showNotification('Tạo QR Code thành công!', 'success');
+                setTimeout(() => location.reload(), 1000);
             } else {
-                alert('Lỗi: ' + result.message);
+                showNotification('Lỗi: ' + result.message, 'error');
             }
         } catch (error) {
-            alert('Lỗi khi tạo QR Code: ' + error.message);
+            showNotification('Lỗi khi tạo QR Code: ' + error.message, 'error');
         } finally {
             this.innerHTML = '<i class="fas fa-qrcode me-2"></i>Tạo QR Code';
             this.disabled = false;
         }
     });
 
+    // ========== XỬ LÝ UPLOAD VÀ PREVIEW ==========
+    // Cách 1: Click vào upload area để chọn file
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('qrImageFile');
+
+    if (uploadArea && fileInput) {
+        // Click vào upload area để mở file dialog
+        uploadArea.addEventListener('click', function(e) {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#FF5722';
+            this.style.backgroundColor = '#fff3e0';
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#e0e0e0';
+            this.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#e0e0e0';
+            this.style.backgroundColor = 'transparent';
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // Khi chọn file
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+    }
+
+    function handleFileSelect(file) {
+        // Kiểm tra định dạng file
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+        if (!allowedTypes.includes(file.type)) {
+            showNotification('Chỉ chấp nhận file PNG, JPG, JPEG', 'error');
+            return;
+        }
+
+        // Kiểm tra kích thước (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            showNotification('Kích thước file không được vượt quá 2MB', 'error');
+            return;
+        }
+
+        selectedFile = file;
+
+        // Hiển thị preview
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const previewDiv = document.getElementById('imagePreview');
+            if (previewDiv) {
+                previewDiv.innerHTML = `
+                    <div class="preview-container">
+                        <img src="${ev.target.result}" class="preview-image" style="max-width: 200px; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                        <div class="mt-2">
+                            <small class="text-success">
+                                <i class="fas fa-check-circle"></i> ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+                            </small>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+        reader.readAsDataURL(selectedFile);
+    }
+
     // ========== XEM QR ==========
     function viewQR(id, name, location, link, imageData) {
         currentViewQR = { id, name, location, link, imageData };
 
-        document.getElementById('viewModalImage').src = imageData || 'https://via.placeholder.com/250?text=No+Image';
-        document.getElementById('viewModalTitle').innerText = name;
-        document.getElementById('viewModalLocation').innerHTML = '<i class="fas fa-map-marker-alt me-1"></i>' + location;
-        document.getElementById('viewModalLink').innerHTML = '<i class="fas fa-link me-1"></i>' + link;
+        const modalImage = document.getElementById('viewModalImage');
+        const modalTitle = document.getElementById('viewModalTitle');
+        const modalLocation = document.getElementById('viewModalLocation');
+        const modalLink = document.getElementById('viewModalLink');
+
+        if (modalImage) {
+            if (imageData && imageData !== 'null' && imageData !== '') {
+                modalImage.src = imageData;
+                modalImage.style.display = 'block';
+            } else {
+                modalImage.style.display = 'none';
+                // Hiển thị placeholder
+                const placeholder = document.createElement('div');
+                placeholder.innerHTML = '<i class="fas fa-qrcode" style="font-size: 150px; color: #ccc;"></i>';
+                modalImage.parentNode.insertBefore(placeholder, modalImage);
+            }
+        }
+
+        if (modalTitle) modalTitle.innerText = name;
+        if (modalLocation) modalLocation.innerHTML = '<i class="fas fa-map-marker-alt me-1"></i>' + location;
+        if (modalLink) modalLink.innerHTML = '<i class="fas fa-link me-1"></i>' + link;
 
         document.getElementById('viewModal').classList.add('show');
     }
@@ -572,11 +719,23 @@
         document.getElementById('editQrName').value = name;
         selectedFile = null;
 
+        // Reset file input
+        if (fileInput) fileInput.value = '';
+
         const previewDiv = document.getElementById('imagePreview');
-        if (currentImage) {
-            previewDiv.innerHTML = `<img src="${currentImage}" class="preview-image" />`;
-        } else {
-            previewDiv.innerHTML = '<p class="text-muted">Chưa có ảnh</p>';
+        if (previewDiv) {
+            if (currentImage && currentImage !== 'null' && currentImage !== '') {
+                previewDiv.innerHTML = `
+                    <div class="preview-container">
+                        <img src="${currentImage}" class="preview-image" style="max-width: 200px; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                        <div class="mt-2">
+                            <small class="text-muted">Ảnh hiện tại</small>
+                        </div>
+                    </div>
+                `;
+            } else {
+                previewDiv.innerHTML = '<p class="text-muted"><i class="fas fa-image"></i> Chưa có ảnh</p>';
+            }
         }
 
         document.getElementById('editModal').classList.add('show');
@@ -585,20 +744,14 @@
     function closeEditModal() {
         document.getElementById('editModal').classList.remove('show');
         selectedFile = null;
-        document.getElementById('qrImageFile').value = '';
-    }
+        if (fileInput) fileInput.value = '';
 
-    // Xử lý chọn file
-    document.getElementById('qrImageFile')?.addEventListener('change', function(e) {
-        if (e.target.files && e.target.files[0]) {
-            selectedFile = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                document.getElementById('imagePreview').innerHTML = `<img src="${ev.target.result}" class="preview-image" />`;
-            };
-            reader.readAsDataURL(selectedFile);
+        // Reset preview
+        const previewDiv = document.getElementById('imagePreview');
+        if (previewDiv) {
+            previewDiv.innerHTML = '<p class="text-muted">Chưa có ảnh</p>';
         }
-    });
+    }
 
     // Lưu sửa QR
     async function saveQR() {
@@ -606,7 +759,7 @@
         const name = document.getElementById('editQrName').value;
 
         if (!name) {
-            alert('Vui lòng nhập tên QR Code');
+            showNotification('Vui lòng nhập tên QR Code', 'warning');
             return;
         }
 
@@ -617,6 +770,11 @@
             formData.append('imageFile', selectedFile);
         }
 
+        const saveBtn = event.target;
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...';
+        saveBtn.disabled = true;
+
         try {
             const response = await fetch('/api/QrApi/UpdateQR', {
                 method: 'POST',
@@ -625,13 +783,16 @@
 
             const result = await response.json();
             if (result.success) {
-                alert('Cập nhật thành công!');
-                location.reload();
+                showNotification('Cập nhật thành công!', 'success');
+                setTimeout(() => location.reload(), 1000);
             } else {
-                alert('Lỗi: ' + result.message);
+                showNotification('Lỗi: ' + result.message, 'error');
             }
         } catch (error) {
-            alert('Lỗi khi cập nhật QR: ' + error.message);
+            showNotification('Lỗi khi cập nhật QR: ' + error.message, 'error');
+        } finally {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
         }
     }
 
@@ -639,49 +800,82 @@
     async function downloadQR(id, name) {
         try {
             const response = await fetch(`/api/QrApi/GetQRImage?id=${id}`);
+            if (!response.ok) throw new Error('Không thể tải ảnh');
+
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.download = `${name}.png`;
+            link.download = `${name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
             link.href = url;
             link.click();
             URL.revokeObjectURL(url);
+
+            showNotification('Đang tải QR Code...', 'success');
         } catch (error) {
-            alert('Lỗi khi tải QR Code');
+            showNotification('Lỗi khi tải QR Code: ' + error.message, 'error');
         }
     }
 
     // ========== XÓA QR ==========
     async function deleteQR(id) {
-        if (confirm('Bạn có chắc chắn muốn xóa mã QR này?')) {
+        if (confirm('Bạn có chắc chắn muốn xóa mã QR này? Hành động này không thể hoàn tác.')) {
             try {
-                const response = await fetch(`/api/QrApi/DeleteQR?id=${id}`, { method: 'DELETE' });
+                const response = await fetch(`/api/QrApi/DeleteQR?id=${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
                 const result = await response.json();
                 if (result.success) {
-                    location.reload();
+                    showNotification('Xóa QR Code thành công!', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('Xóa thất bại');
+                    showNotification('Xóa thất bại: ' + result.message, 'error');
                 }
             } catch (error) {
-                alert('Lỗi khi xóa QR Code');
+                showNotification('Lỗi khi xóa QR Code: ' + error.message, 'error');
             }
         }
     }
 
     // ========== TÌM KIẾM ==========
     document.getElementById('searchInput')?.addEventListener('keyup', function() {
-        const searchText = this.value.toLowerCase();
+        const searchText = this.value.toLowerCase().trim();
         const cards = document.querySelectorAll('.qr-card');
+        let visibleCount = 0;
 
         cards.forEach(card => {
             const name = card.getAttribute('data-name')?.toLowerCase() || '';
             const location = card.getAttribute('data-location')?.toLowerCase() || '';
-            if (name.includes(searchText) || location.includes(searchText)) {
+
+            if (searchText === '' || name.includes(searchText) || location.includes(searchText)) {
                 card.style.display = '';
+                visibleCount++;
             } else {
                 card.style.display = 'none';
             }
         });
+
+        // Hiển thị kết quả tìm kiếm
+        const container = document.getElementById('qrGridContainer');
+        if (visibleCount === 0 && searchText !== '') {
+            const noResult = document.createElement('div');
+            noResult.className = 'empty-state';
+            noResult.innerHTML = `
+                <i class="fas fa-search"></i>
+                <p>Không tìm thấy kết quả cho "${searchText}"</p>
+                <small>Thử tìm kiếm với từ khóa khác</small>
+            `;
+            // Chỉ thêm nếu chưa có
+            if (!document.querySelector('.no-result-message')) {
+                noResult.className += ' no-result-message';
+                container.appendChild(noResult);
+            }
+        } else {
+            const noResultEl = document.querySelector('.no-result-message');
+            if (noResultEl) noResultEl.remove();
+        }
     });
 
     // ========== LÀM MỚI ==========
@@ -690,19 +884,82 @@
     });
 
     // ========== ĐÓNG MODAL KHI CLICK RA NGOÀI ==========
-    document.getElementById('viewModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeViewModal();
-    });
+    const viewModal = document.getElementById('viewModal');
+    const editModal = document.getElementById('editModal');
 
-    document.getElementById('editModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeEditModal();
-    });
+    if (viewModal) {
+        viewModal.addEventListener('click', function(e) {
+            if (e.target === this) closeViewModal();
+        });
+    }
+
+    if (editModal) {
+        editModal.addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+    }
 
     // ESC để đóng modal
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            if (document.getElementById('viewModal').classList.contains('show')) closeViewModal();
-            if (document.getElementById('editModal').classList.contains('show')) closeEditModal();
+            if (viewModal?.classList.contains('show')) closeViewModal();
+            if (editModal?.classList.contains('show')) closeEditModal();
         }
     });
+
+    // ========== HÀM HIỂN THỊ THÔNG BÁO ==========
+    function showNotification(message, type = 'info') {
+        // Tạo toast notification nếu chưa có
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.position = 'fixed';
+            toastContainer.style.bottom = '20px';
+            toastContainer.style.right = '20px';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement('div');
+        const bgColor = type === 'success' ? '#4caf50' : (type === 'error' ? '#f44336' : (type === 'warning' ? '#ff9800' : '#2196f3'));
+
+        toast.style.background = bgColor;
+        toast.style.color = 'white';
+        toast.style.padding = '12px 20px';
+        toast.style.marginBottom = '10px';
+        toast.style.borderRadius = '8px';
+        toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        toast.style.animation = 'slideInRight 0.3s ease';
+        toast.style.fontSize = '14px';
+        toast.style.minWidth = '250px';
+        toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle')} me-2"></i>${message}`;
+
+        toastContainer.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Thêm CSS cho animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @@keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @@keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .preview-container {
+            animation: fadeIn 0.3s ease;
+        }
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    `;
+    document.head.appendChild(style);
 </script>

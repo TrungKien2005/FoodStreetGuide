@@ -13,5 +13,7 @@ namespace doanC_Admin.Models
         public int LanguageId { get; set; }
         public DateTime PlayedAt { get; set; }  
         public int? DurationSeconds { get; set; }
+        [ForeignKey("PointId")]
+        public virtual LocationPoint? LocationPoint { get; set; }
     }
 }

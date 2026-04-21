@@ -2,6 +2,8 @@
 using doanC_Admin.Filters;
 using doanC_Admin.Hubs;
 using doanC_Admin.Models;
+using doanC_Admin.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
@@ -30,6 +32,8 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddHostedService<RealTimeMonitoringService>();
+
 
 builder.Services.AddCors(options =>
 {
@@ -46,7 +50,13 @@ builder.Services.AddMvc(options =>
 {
     options.Filters.Add<SessionFilter>();
 });
-
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login";
+        options.LogoutPath = "/Logout";
+        options.AccessDeniedPath = "/AccessDenied";
+    });
 // ============================================
 // ✅ CẤU HÌNH DATABASE THEO MÔI TRƯỜNG
 // ============================================

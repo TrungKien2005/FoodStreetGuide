@@ -59,7 +59,11 @@ namespace doanC_Admin.Models
         public virtual AdminUser? Admin { get; set; }
 
         [ForeignKey("OwnerId")]
-        public virtual StoreOwner? StoreOwner { get; set; }
+        public virtual StoreOwner? Owner { get; set; }
+        // Navigation collections
+        public virtual ICollection<TTSLog>? TTSLogs { get; set; }
+        public virtual ICollection<QRScanLog>? QRScanLogs { get; set; }
+        public virtual ICollection<GeoFenceLog>? GeoFenceLogs { get; set; }
 
         [ForeignKey("ApprovedBy")]
         public virtual AdminUser? Approver { get; set; }

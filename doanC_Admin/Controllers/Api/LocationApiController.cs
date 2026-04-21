@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 
 namespace doanC_Admin.Controllers.Api
 {
@@ -17,11 +18,18 @@ namespace doanC_Admin.Controllers.Api
         private readonly FoodStreetGuideDBContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IHubContext<DashboardHub> _hubContext;
-        public LocationApiController(FoodStreetGuideDBContext context, IWebHostEnvironment webHostEnvironment, IHubContext<DashboardHub> hubContext)
+        private readonly ILogger<LocationApiController> _logger;
+
+        public LocationApiController(
+            FoodStreetGuideDBContext context,
+            IWebHostEnvironment webHostEnvironment,
+            IHubContext<DashboardHub> hubContext,
+            ILogger<LocationApiController> logger)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
             _hubContext = hubContext;
+            _logger = logger;
         }
 
         // ========== CORE API - HỖ TRỢ INCREMENTAL SYNC ==========
@@ -38,20 +46,16 @@ namespace doanC_Admin.Controllers.Api
             {
                 IQueryable<LocationPoint> query = _context.LocationPoints;
 
-                // ✅ Nếu có lastSync, chỉ lấy dữ liệu thay đổi sau thời gian đó
                 if (lastSync.HasValue && lastSync.Value > DateTime.MinValue)
                 {
                     query = query.Where(l => l.UpdatedAt > lastSync.Value || l.CreatedAt > lastSync.Value);
-
-                    // Log để debug
-                    Console.WriteLine($"[API] Incremental sync from {lastSync.Value:yyyy-MM-dd HH:mm:ss}");
+                    _logger.LogInformation($"[API] Incremental sync from {lastSync.Value:yyyy-MM-dd HH:mm:ss}");
                 }
 
                 var locations = await query
                     .OrderByDescending(l => l.UpdatedAt)
                     .ToListAsync();
 
-                // ✅ Thêm header để client biết thông tin sync
                 Response.Headers.Append("X-Last-Sync", DateTime.UtcNow.ToString("o"));
                 Response.Headers.Append("X-Total-Count", locations.Count.ToString());
 
@@ -60,11 +64,12 @@ namespace doanC_Admin.Controllers.Api
                     Response.Headers.Append("X-Incremental", "true");
                 }
 
-                Console.WriteLine($"[API] Returning {locations.Count} locations");
+                _logger.LogInformation($"[API] Returning {locations.Count} locations");
                 return Ok(locations);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in GetAllLocations");
                 return StatusCode(500, new { error = ex.Message });
             }
         }
@@ -93,43 +98,80 @@ namespace doanC_Admin.Controllers.Api
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in GetVersion");
                 return StatusCode(500, new { error = ex.Message });
             }
         }
 
-        // GET: api/LocationApi/5
+        /// <summary>
+        /// GET: api/LocationApi/5
+        /// Lấy địa điểm theo ID
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<LocationPoint>> GetLocationById(int id)
         {
-            var location = await _context.LocationPoints.FindAsync(id);
-            if (location == null)
-                return NotFound(new { error = "Không tìm thấy địa điểm" });
-            return Ok(location);
+            try
+            {
+                var location = await _context.LocationPoints.FindAsync(id);
+                if (location == null)
+                    return NotFound(new { error = "Không tìm thấy địa điểm" });
+                return Ok(location);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in GetLocationById for id {id}");
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        // GET: api/LocationApi/category/{category}
+        /// <summary>
+        /// GET: api/LocationApi/category/{category}
+        /// Lấy địa điểm theo danh mục
+        /// </summary>
         [HttpGet("category/{category}")]
         public async Task<ActionResult<IEnumerable<LocationPoint>>> GetLocationsByCategory(string category)
         {
-            var locations = await _context.LocationPoints
-                .Where(l => l.Category != null && l.Category.Contains(category))
-                .ToListAsync();
-            return Ok(locations);
+            try
+            {
+                var locations = await _context.LocationPoints
+                    .Where(l => l.Category != null && l.Category.Contains(category))
+                    .ToListAsync();
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in GetLocationsByCategory for category {category}");
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        // GET: api/LocationApi/search/{keyword}
+        /// <summary>
+        /// GET: api/LocationApi/search/{keyword}
+        /// Tìm kiếm địa điểm theo từ khóa
+        /// </summary>
         [HttpGet("search/{keyword}")]
         public async Task<ActionResult<IEnumerable<LocationPoint>>> SearchLocations(string keyword)
         {
-            var locations = await _context.LocationPoints
-                .Where(l => l.Name.Contains(keyword) ||
-                            (l.Description != null && l.Description.Contains(keyword)) ||
-                            (l.Address != null && l.Address.Contains(keyword)))
-                .ToListAsync();
-            return Ok(locations);
+            try
+            {
+                var locations = await _context.LocationPoints
+                    .Where(l => l.Name.Contains(keyword) ||
+                                (l.Description != null && l.Description.Contains(keyword)) ||
+                                (l.Address != null && l.Address.Contains(keyword)))
+                    .ToListAsync();
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in SearchLocations for keyword {keyword}");
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        // GET: api/LocationApi/image/{fileName}
+        /// <summary>
+        /// GET: api/LocationApi/image/{fileName}
+        /// Lấy ảnh địa điểm
+        /// </summary>
         [HttpGet("image/{fileName}")]
         public IActionResult GetImage(string fileName)
         {
@@ -157,10 +199,15 @@ namespace doanC_Admin.Controllers.Api
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Error in GetImage for fileName {fileName}");
                 return BadRequest(new { error = ex.Message });
             }
         }
-        // GET: api/LocationApi/paged?page=1&pageSize=20
+
+        /// <summary>
+        /// GET: api/LocationApi/paged?page=1&pageSize=20
+        /// Lấy danh sách địa điểm có phân trang
+        /// </summary>
         [HttpGet("paged")]
         public async Task<ActionResult<object>> GetPagedLocations(
             [FromQuery] int page = 1,
@@ -206,64 +253,54 @@ namespace doanC_Admin.Controllers.Api
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in GetPagedLocations");
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-        // GET: api/LocationApi/changes?since=2024-01-01T00:00:00
-[HttpGet("changes")]
-public async Task<ActionResult<object>> GetChangesSince([FromQuery] DateTime since)
-{
-    try
-    {
-        if (since == DateTime.MinValue)
+
+        /// <summary>
+        /// GET: api/LocationApi/changes?since=2024-01-01T00:00:00
+        /// Lấy các thay đổi từ thời điểm chỉ định
+        /// </summary>
+        [HttpGet("changes")]
+        public async Task<ActionResult<object>> GetChangesSince([FromQuery] DateTime since)
         {
-            return BadRequest(new { error = "Missing 'since' parameter" });
+            try
+            {
+                if (since == DateTime.MinValue)
+                {
+                    return BadRequest(new { error = "Missing 'since' parameter" });
+                }
+
+                var newLocations = await _context.LocationPoints
+                    .Where(l => l.CreatedAt > since)
+                    .ToListAsync();
+
+                var updatedLocations = await _context.LocationPoints
+                    .Where(l => l.UpdatedAt > since && l.CreatedAt <= since)
+                    .ToListAsync();
+
+                var deletedIds = await GetDeletedIdsSince(since);
+
+                return Ok(new
+                {
+                    New = newLocations,
+                    Updated = updatedLocations,
+                    DeletedIds = deletedIds,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in GetChangesSince for since {since}");
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
-        var newLocations = await _context.LocationPoints
-            .Where(l => l.CreatedAt > since)
-            .ToListAsync();
-
-        var updatedLocations = await _context.LocationPoints
-            .Where(l => l.UpdatedAt > since && l.CreatedAt <= since)
-            .ToListAsync();
-
-        var deletedIds = await GetDeletedIdsSince(since); // Cần bảng tracking
-
-        return Ok(new
-        {
-            New = newLocations,
-            Updated = updatedLocations,
-            DeletedIds = deletedIds,
-            Timestamp = DateTime.UtcNow
-        });
-    }
-    catch (Exception ex)
-    {
-        return StatusCode(500, new { error = ex.Message });
-    }
-}
-
-// Cần thêm bảng DeletedLogs để track xóa
-private async Task<List<int>> GetDeletedIdsSince(DateTime since)
-{
-    try
-    {
-        // Nếu có bảng DeletedLogs
-        // return await _context.DeletedLogs
-        //     .Where(d => d.DeletedAt > since)
-        //     .Select(d => d.PointId)
-        //     .ToListAsync();
-        
-        return new List<int>(); // Tạm thời trả về rỗng
-    }
-    catch
-    {
-        return new List<int>();
-    }
-}
-
-        // POST: api/LocationApi/upload-image
+        /// <summary>
+        /// POST: api/LocationApi/upload-image
+        /// Upload ảnh địa điểm
+        /// </summary>
         [HttpPost("upload-image")]
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
@@ -295,11 +332,15 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in UploadImage");
                 return BadRequest(new { error = ex.Message });
             }
         }
 
-        // POST: api/LocationApi
+        /// <summary>
+        /// POST: api/LocationApi
+        /// Thêm địa điểm mới
+        /// </summary>
         [HttpPost]
         public async Task<ActionResult<LocationPoint>> AddLocation([FromForm] LocationPoint location, IFormFile? imageFile)
         {
@@ -320,15 +361,20 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                 _context.LocationPoints.Add(location);
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation($"Added new location: {location.Name} (ID: {location.PointId})");
                 return Ok(location);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in AddLocation");
                 return BadRequest(new { error = ex.Message });
             }
         }
 
-        // POST: api/LocationApi/batch
+        /// <summary>
+        /// POST: api/LocationApi/batch
+        /// Thêm nhiều địa điểm cùng lúc
+        /// </summary>
         [HttpPost("batch")]
         public async Task<IActionResult> BatchInsertLocations([FromBody] List<LocationPoint> locations)
         {
@@ -346,6 +392,7 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
 
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation($"Batch inserted {locations.Count} locations");
                 return Ok(new
                 {
                     count = locations.Count,
@@ -354,11 +401,15 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in BatchInsertLocations");
                 return BadRequest(new { error = ex.Message });
             }
         }
 
-        // PUT: api/LocationApi/5
+        /// <summary>
+        /// PUT: api/LocationApi/5
+        /// Cập nhật địa điểm
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateLocation(int id, [FromForm] LocationPoint location, IFormFile? imageFile)
         {
@@ -394,15 +445,21 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                 existingLocation.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Updated location: {existingLocation.Name} (ID: {existingLocation.PointId})");
                 return Ok(existingLocation);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Error in UpdateLocation for id {id}");
                 return BadRequest(new { error = ex.Message });
             }
         }
 
-        // DELETE: api/LocationApi/5
+        /// <summary>
+        /// DELETE: api/LocationApi/5
+        /// Xóa địa điểm
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLocation(int id)
         {
@@ -412,7 +469,7 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                 if (location == null)
                     return NotFound(new { error = "Không tìm thấy địa điểm" });
 
-                // ✅ THÊM: GHI LOG XÓA VÀO BẢNG DELETEDLOGS
+                // Ghi log xóa vào bảng DeletedLogs
                 try
                 {
                     var deletedLog = new DeletedLog
@@ -423,12 +480,11 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                         DeletedBy = User?.Identity?.Name ?? "System"
                     };
                     _context.DeletedLogs.Add(deletedLog);
-                    await _context.SaveChangesAsync(); // Lưu log trước khi xóa
+                    await _context.SaveChangesAsync();
                 }
                 catch (Exception logEx)
                 {
-                    Console.WriteLine($"[DeleteLocation] Log error: {logEx.Message}");
-                    // Vẫn tiếp tục xóa dù log lỗi
+                    _logger.LogWarning(logEx, $"Failed to log deletion for location {id}");
                 }
 
                 // Xóa file ảnh nếu có
@@ -440,103 +496,170 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                 _context.LocationPoints.Remove(location);
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation($"Deleted location: {location.Name} (ID: {location.PointId})");
                 return Ok(new { message = "Đã xóa thành công", deletedId = id });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Error in DeleteLocation for id {id}");
                 return BadRequest(new { error = ex.Message });
             }
         }
 
-        // POST: api/LocationApi/ApproveLocation
+        /// <summary>
+        /// POST: api/LocationApi/ApproveLocation
+        /// Duyệt hoặc từ chối địa điểm
+        /// </summary>
         [HttpPost("ApproveLocation")]
         public async Task<IActionResult> ApproveLocation([FromBody] ApproveLocationRequest request)
         {
             try
             {
+                // Kiểm tra request
+                if (request == null || request.PointId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ" });
+                }
+
+                // Tìm địa điểm cần duyệt
                 var poi = await _context.LocationPoints
-                    .Include(l => l.StoreOwner)
+                    .Include(l => l.Owner)
                     .ThenInclude(o => o.AdminUser)
                     .FirstOrDefaultAsync(l => l.PointId == request.PointId);
 
                 if (poi == null)
+                {
                     return NotFound(new { success = false, message = "Không tìm thấy địa điểm" });
+                }
 
+                // Lấy thông tin admin đang duyệt
                 var adminId = HttpContext.Session.GetString("AdminId");
                 var adminName = HttpContext.Session.GetString("Username") ?? "Admin";
+                var adminRole = HttpContext.Session.GetString("Role") ?? "Admin";
 
+                // Kiểm tra quyền duyệt (chỉ Admin hoặc SuperAdmin mới được duyệt)
+                if (adminRole != "Admin" && adminRole != "SuperAdmin")
+                {
+                    return BadRequest(new { success = false, message = "Bạn không có quyền duyệt địa điểm" });
+                }
+
+                // Xử lý duyệt hoặc từ chối
                 if (request.IsApproved)
                 {
                     poi.IsApproved = true;
                     poi.ApprovedAt = DateTime.Now;
-                    poi.ApprovedBy = int.Parse(adminId);
+                    poi.ApprovedBy = string.IsNullOrEmpty(adminId) ? null : int.Parse(adminId);
                     poi.RejectionReason = null;
+                    poi.UpdatedAt = DateTime.Now;
                 }
                 else
                 {
                     poi.IsApproved = false;
-                    poi.RejectionReason = request.RejectionReason ?? "Không được duyệt";
+                    poi.RejectionReason = string.IsNullOrEmpty(request.RejectionReason)
+                        ? "Địa điểm không đáp ứng tiêu chuẩn"
+                        : request.RejectionReason;
+                    poi.ApprovedAt = null;
+                    poi.ApprovedBy = null;
+                    poi.UpdatedAt = DateTime.Now;
                 }
 
-                // Cập nhật số lượng pending của Owner
+                // Cập nhật số lượng pending/approved/rejected của Owner
                 if (poi.OwnerId.HasValue)
                 {
-                    var owner = await _context.StoreOwners.FindAsync(poi.OwnerId.Value);
+                    var owner = await _context.StoreOwners
+                        .Include(o => o.AdminUser)
+                        .FirstOrDefaultAsync(o => o.OwnerId == poi.OwnerId);
+
                     if (owner != null)
                     {
                         if (request.IsApproved)
                         {
-                            owner.ApprovedLocations++;
-                            if (owner.PendingLocations > 0) owner.PendingLocations--;
+                            owner.ApprovedLocations = (owner.ApprovedLocations.GetValueOrDefault(0)) + 1;
+                            if ((owner.PendingLocations ?? 0) > 0)
+                            {
+                                owner.PendingLocations = (owner.PendingLocations ?? 0) - 1;
+                            }
                         }
                         else
                         {
-                            owner.RejectedLocations++;
-                            if (owner.PendingLocations > 0) owner.PendingLocations--;
+                            owner.RejectedLocations = (owner.RejectedLocations ?? 0) + 1;
+                            if ((owner.PendingLocations ?? 0) > 0)
+                            {
+                                owner.PendingLocations = (owner.PendingLocations ?? 0) - 1;
+                            }
                         }
+                        owner.UpdatedAt = DateTime.Now;
                     }
                 }
 
                 await _context.SaveChangesAsync();
 
-                // Gửi thông báo real-time
+                // Gửi thông báo real-time qua SignalR
                 var status = request.IsApproved ? "đã được duyệt" : "bị từ chối";
-                var reason = request.IsApproved ? "" : $" Lý do: {request.RejectionReason}";
+                var reason = request.IsApproved ? "" : $"\nLý do: {poi.RejectionReason}";
 
                 await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                    request.IsApproved ? "✅ POI được duyệt" : "❌ POI bị từ chối",
-                    $"POI '{poi.Name}' của bạn {status}{reason}",
+                    request.IsApproved ? "✅ Địa điểm được duyệt" : "❌ Địa điểm bị từ chối",
+                    $"Địa điểm '{poi.Name}' của bạn {status}{reason}",
                     request.IsApproved ? "success" : "error");
+
+                if (poi.Owner?.AdminUser != null)
+                {
+                    await _hubContext.Clients.All.SendAsync("NotifyOwner",
+                        poi.Owner.AdminUser.Username,
+                        request.IsApproved ? "Địa điểm được duyệt" : "Địa điểm bị từ chối",
+                        $"Địa điểm '{poi.Name}' của bạn {status}");
+                }
 
                 await _hubContext.Clients.All.SendAsync("RefreshDashboard");
                 await _hubContext.Clients.All.SendAsync("RefreshPendingList");
+                await _hubContext.Clients.All.SendAsync("UpdateStats");
 
-                return Ok(new { success = true, message = request.IsApproved ? "Đã duyệt địa điểm" : "Đã từ chối địa điểm" });
+                _logger.LogInformation($"Admin {adminName} (ID: {adminId}) đã {(request.IsApproved ? "duyệt" : "từ chối")} địa điểm '{poi.Name}' (ID: {poi.PointId})");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = request.IsApproved ? "Đã duyệt địa điểm thành công" : "Đã từ chối địa điểm",
+                    data = new
+                    {
+                        PointId = poi.PointId,
+                        Name = poi.Name,
+                        IsApproved = poi.IsApproved,
+                        ApprovedAt = poi.ApprovedAt,
+                        ApprovedBy = adminName,
+                        RejectionReason = poi.RejectionReason
+                    }
+                });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error when approving location");
+                return BadRequest(new { success = false, message = "Lỗi database: " + (dbEx.InnerException?.Message ?? dbEx.Message) });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                _logger.LogError(ex, "Error when approving location");
+                return BadRequest(new { success = false, message = "Lỗi: " + ex.Message });
             }
         }
 
-        public class ApproveLocationRequest
-        {
-            public int PointId { get; set; }
-            public bool IsApproved { get; set; }
-            public string? RejectionReason { get; set; }
-        }
-        private int GetCurrentAdminId()
-        {
-            var adminId = HttpContext.Session.GetString("AdminId");
-            if (int.TryParse(adminId, out int id))
-                return id;
-            var userId = User?.Identity?.Name;
-            if (int.TryParse(userId, out int userIdInt))
-                return userIdInt;
-            return 1;
-        }
-
         // ========== PHƯƠNG THỨC HỖ TRỢ ==========
+
+        private async Task<List<int>> GetDeletedIdsSince(DateTime since)
+        {
+            try
+            {
+                return await _context.DeletedLogs
+                    .Where(d => d.DeletedAt > since)
+                    .Select(d => d.PointId)
+                    .ToListAsync();
+            }
+            catch
+            {
+                return new List<int>();
+            }
+        }
 
         private async Task<string> SaveImageFile(IFormFile imageFile)
         {
@@ -570,7 +693,7 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi xóa ảnh: {ex.Message}");
+                _logger.LogWarning(ex, $"Error deleting image file: {fileName}");
             }
         }
 
@@ -586,5 +709,14 @@ private async Task<List<int>> GetDeletedIdsSince(DateTime since)
                 _ => "application/octet-stream"
             };
         }
+    }
+
+    // ========== REQUEST/ RESPONSE CLASSES ==========
+
+    public class ApproveLocationRequest
+    {
+        public int PointId { get; set; }
+        public bool IsApproved { get; set; }
+        public string? RejectionReason { get; set; }
     }
 }
