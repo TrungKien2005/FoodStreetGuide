@@ -1,4 +1,4 @@
-﻿using SQLite;
+using SQLite;
 using System;
 using System.Text.Json.Serialization;
 
@@ -61,6 +61,9 @@ namespace doanC_.Models
 
         [JsonPropertyName("createdBy")]
         public int? CreatedBy { get; set; }
+
+        [JsonPropertyName("isApproved")]
+        public bool IsApproved { get; set; }
 
         // 👉 Xóa dòng này nếu có
         // public virtual AdminUser? Admin { get; set; }

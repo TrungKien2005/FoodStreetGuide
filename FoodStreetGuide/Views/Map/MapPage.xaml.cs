@@ -286,7 +286,9 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         try
         {
-            _originalPoints = await _sqliteService.GetAllLocationPointsAsync();
+            var allDbPoints = await _sqliteService.GetAllLocationPointsAsync();
+            _originalPoints = allDbPoints?.Where(p => p.IsApproved).ToList() ?? new List<LocationPoint>();
+
             if (_originalPoints != null && _originalPoints.Any())
             {
                 await TranslateAndDisplayPoints();

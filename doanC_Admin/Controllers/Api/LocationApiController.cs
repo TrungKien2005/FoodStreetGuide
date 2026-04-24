@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using doanC_Admin.Hubs;
 using doanC_Admin.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -44,7 +44,7 @@ namespace doanC_Admin.Controllers.Api
         {
             try
             {
-                IQueryable<LocationPoint> query = _context.LocationPoints;
+                IQueryable<LocationPoint> query = _context.LocationPoints.Where(l => l.IsApproved == true);
 
                 if (lastSync.HasValue && lastSync.Value > DateTime.MinValue)
                 {
@@ -134,7 +134,7 @@ namespace doanC_Admin.Controllers.Api
             try
             {
                 var locations = await _context.LocationPoints
-                    .Where(l => l.Category != null && l.Category.Contains(category))
+                    .Where(l => l.IsApproved == true && l.Category != null && l.Category.Contains(category))
                     .ToListAsync();
                 return Ok(locations);
             }
@@ -155,9 +155,10 @@ namespace doanC_Admin.Controllers.Api
             try
             {
                 var locations = await _context.LocationPoints
-                    .Where(l => l.Name.Contains(keyword) ||
+                    .Where(l => l.IsApproved == true && (
+                                l.Name.Contains(keyword) ||
                                 (l.Description != null && l.Description.Contains(keyword)) ||
-                                (l.Address != null && l.Address.Contains(keyword)))
+                                (l.Address != null && l.Address.Contains(keyword))))
                     .ToListAsync();
                 return Ok(locations);
             }
@@ -216,7 +217,7 @@ namespace doanC_Admin.Controllers.Api
         {
             try
             {
-                IQueryable<LocationPoint> query = _context.LocationPoints;
+                IQueryable<LocationPoint> query = _context.LocationPoints.Where(l => l.IsApproved == true);
 
                 if (lastSync.HasValue && lastSync.Value > DateTime.MinValue)
                 {

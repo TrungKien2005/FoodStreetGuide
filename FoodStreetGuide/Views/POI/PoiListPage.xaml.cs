@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using doanC_.Config;
 using doanC_.Helpers;
 using doanC_.Models;
@@ -112,7 +112,8 @@ namespace doanC_.Views
                 loadingIndicator.IsVisible = true;
                 loadingIndicator.IsRunning = true;
 
-                _allLocationPoints = await _sqliteService.GetAllLocationPointsAsync();
+                var dbPoints = await _sqliteService.GetAllLocationPointsAsync();
+                _allLocationPoints = dbPoints?.Where(p => p.IsApproved).ToList() ?? new List<LocationPoint>();
 
                 if (_allLocationPoints != null && _allLocationPoints.Any())
                 {
@@ -150,11 +151,13 @@ namespace doanC_.Views
                 var onlineData = await _apiService.GetLocationPointsAsync();
                 if (onlineData != null && onlineData.Any())
                 {
-                    foreach (var poi in onlineData)
+                    var approvedData = onlineData.Where(p => p.IsApproved).ToList();
+                    
+                    foreach (var poi in approvedData)
                     {
                         await _sqliteService.AddLocationPointAsync(poi);
                     }
-                    _allLocationPoints = onlineData;
+                    _allLocationPoints = approvedData;
 
                     LoadCategoryFilters();
                     await FilterAndDisplayLocationsAsync();
