@@ -33,6 +33,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     private string _currentLanguage = "vi";
     private string _lastLanguage = "vi";
     private bool _isTranslating = false;
+    private Circle? _radiusCircle;
 
     // Binding properties
 
@@ -106,6 +107,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         UpdateUILanguage();
         InitializeMap();
 
+        // ✅ THÊM ĐOẠN NÀY - LẮNG NGHE THÔNG BÁO ĐỔI NGÔN NGỮ
         MessagingCenter.Subscribe<SettingsPage, string>(this, "LanguageChanged", async (sender, languageCode) =>
         {
             Debug.WriteLine($"[MapPage] 🔔 Language changed to: {languageCode}");
@@ -118,6 +120,18 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
             {
                 UpdateSelectedPoiTexts(_currentSelectedPoi);
             }
+        });
+        // ✅ THÊM ĐOẠN NÀY - LẮNG NGHE THÔNG BÁO ĐỔI BÁN KÍNH (TỪ SETTINGS)
+        MessagingCenter.Subscribe<SettingsPage, double>(this, "RadiusChanged", (sender, newRadius) =>
+        {
+            Debug.WriteLine($"[MapPage] 📢 Radius changed to: {newRadius}m");
+            _currentRadius = newRadius;
+            UpdateRadiusDisplay();
+            if (_currentLocation != null)
+            {
+                DrawRadiusCircle(new Location(_currentLocation.Latitude, _currentLocation.Longitude));
+            }
+            CheckNearbyPoints();
         });
     }
 
@@ -154,8 +168,8 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
             OnPropertyChanged(nameof(PlayButtonText));
 
             // Cập nhật trực tiếp các control (dự phòng)
-            if (SearchEntry != null) SearchEntry.Placeholder = SearchPlaceholder;
-            if (LanguageLabel != null) LanguageLabel.Text = LanguageCode;
+            //if (SearchEntry != null) SearchEntry.Placeholder = SearchPlaceholder;
+            //if (LanguageLabel != null) LanguageLabel.Text = LanguageCode;
             if (RadiusDisplayLabel != null) RadiusDisplayLabel.Text = RadiusDisplayText;
             if (PlayButton != null) PlayButton.Text = PlayButtonText;
             if (NearbyLabel != null) NearbyLabel.Text = NearbyText;
@@ -199,6 +213,10 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
                 if (location != null)
                 {
                     _currentLocation = location;
+
+                    // ✅ THÊM DÒNG NÀY - VẼ VÒNG TRÒN LẦN ĐẦU
+                    DrawRadiusCircle(new Location(location.Latitude, location.Longitude));
+
                     var mapSpan = MapSpan.FromCenterAndRadius(
                     new Location(location.Latitude, location.Longitude),
                              Distance.FromMeters(500));
@@ -232,6 +250,10 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _currentLocation = location;
+
+                    // ✅ THÊM DÒNG NÀY - VẼ VÒNG TRÒN KHI VỊ TRÍ THAY ĐỔI
+                    DrawRadiusCircle(new Location(location.Latitude, location.Longitude));
+
                     if (_isFirstLoad)
                     {
                         _isFirstLoad = false;
@@ -390,11 +412,26 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         if (_currentLocation == null || _allPoints == null) return;
 
-        var nearest = _allPoints
-            .Select(p => new { Point = p, Distance = CalculateDistance(_currentLocation.Latitude, _currentLocation.Longitude, p.Latitude, p.Longitude) })
+        // Lấy tất cả POI trong bán kính
+        var nearbyPoints = _allPoints
+            .Select(p => new {
+                Point = p,
+                Distance = CalculateDistance(_currentLocation.Latitude, _currentLocation.Longitude, p.Latitude, p.Longitude)
+            })
             .Where(x => x.Distance <= _currentRadius)
-            .OrderBy(x => x.Distance)           // 👈 Sắp xếp theo khoảng cách tăng dần
-            .ThenBy(x => x.Point.PointId)       // 👈 Nếu khoảng cách bằng nhau thì ID nhỏ hơn được ưu tiên
+            .ToList();
+
+        // Log để debug
+        Debug.WriteLine($"[MapPage] Found {nearbyPoints.Count} points within {_currentRadius}m");
+        foreach (var item in nearbyPoints)
+        {
+            Debug.WriteLine($"[MapPage] - {item.Point.Name}: Rating={item.Point.Rating}, Distance={item.Distance}m");
+        }
+
+        // Sắp xếp: Rating cao nhất trước, sau đó đến khoảng cách gần nhất
+        var nearest = nearbyPoints
+            .OrderByDescending(x => x.Point.Rating ?? 0)  // Rating cao nhất
+            .ThenBy(x => x.Distance)                      // Gần nhất
             .FirstOrDefault();
 
         if (nearest != null)
@@ -402,6 +439,8 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
             _currentSelectedPoi = nearest.Point;
             var translatedName = await TranslateTextIfNeeded(nearest.Point.Name);
             var translatedDescription = await TranslateTextIfNeeded(nearest.Point.Description ?? "");
+
+            var nearbyCount = nearbyPoints.Count;
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -413,6 +452,18 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
                 var distanceText = string.Format(AppResources.GetString("NearbyDistance"), (int)nearest.Distance);
                 NearbyLabel.Text = distanceText;
                 RadiusDisplayLabel.Text = $"📍 {translatedName} - {(int)nearest.Distance}m";
+
+                if (nearbyCount > 1)
+                {
+                    var queueText = _currentLanguage == "vi"
+                        ? $"📋 Còn {nearbyCount - 1} điểm khác trong khu vực"
+                        : $"📋 {nearbyCount - 1} other points in this area";
+
+                    ListenTextLabel.Text = $"{ListenTextLabel.Text}\n\n{queueText}";
+                }
+
+                // Log POI được chọn
+                Debug.WriteLine($"[MapPage] ✅ Selected POI: {nearest.Point.Name} (Rating: {nearest.Point.Rating})");
             });
         }
         else
@@ -444,11 +495,11 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (SearchEntry != null)
-                SearchEntry.Placeholder = AppResources.GetString("PoiSearchPlaceholder");
+            //if (SearchEntry != null)
+            //    SearchEntry.Placeholder = AppResources.GetString("PoiSearchPlaceholder");
 
-            if (LanguageLabel != null)
-                LanguageLabel.Text = _currentLanguage.ToUpper();
+            //if (LanguageLabel != null)
+            //    LanguageLabel.Text = _currentLanguage.ToUpper();
 
             var prefix = _currentLanguage == "vi" ? "Bán kính kích hoạt" : "Activation radius";
             if (RadiusDisplayLabel != null)
@@ -537,7 +588,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         if (currentLanguage != _lastLanguage && !_isTranslating)
         {
             _currentLanguage = currentLanguage;
-            await TranslateAndDisplayPoints();  
+            await TranslateAndDisplayPoints();
             RefreshUITexts();
         }
 
@@ -546,6 +597,13 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         {
             _currentRadius = newRadius;
             UpdateRadiusDisplay();
+
+            // ✅ THÊM DÒNG NÀY - VẼ LẠI VÒNG TRÒN KHI ĐỔI BÁN KÍNH
+            if (_currentLocation != null)
+            {
+                DrawRadiusCircle(new Location(_currentLocation.Latitude, _currentLocation.Longitude));
+            }
+
             CheckNearbyPoints();
         }
 
@@ -557,5 +615,34 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         base.OnDisappearing();
         _gpsTokenSource?.Cancel();
+    }
+    // ========== VẼ VÒNG TRÒN BÁN KÍNH TRÊN BẢN ĐỒ ==========
+    /// <summary>
+    /// Vẽ vòng tròn bán kính xung quanh vị trí hiện tại
+    /// </summary>
+    /// <param name="center">Tâm vòng tròn (vị trí GPS hiện tại)</param>
+    private void DrawRadiusCircle(Location center)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Xóa circle cũ nếu có
+            if (_radiusCircle != null)
+            {
+                map.MapElements.Remove(_radiusCircle);
+            }
+
+            // Tạo circle mới với bán kính hiện tại
+            _radiusCircle = new Circle
+            {
+                Center = center,
+                Radius = Distance.FromMeters(_currentRadius),
+                StrokeColor = Color.FromArgb("#2196F3"),
+                StrokeWidth = 3,
+                FillColor = Color.FromArgb("#402196F3")
+            };
+
+            map.MapElements.Add(_radiusCircle);
+            Debug.WriteLine($"[MapPage] 🟠 Drew radius circle: {_currentRadius}m");
+        });
     }
 }

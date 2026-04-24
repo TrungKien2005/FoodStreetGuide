@@ -129,17 +129,15 @@ namespace doanC_.Views
 
         private async void OnRadiusClicked(object sender, EventArgs e)
         {
-            // ✅ MỞ RỘNG BÁN KÍNH LÊN 500M ĐỂ TEST
             string[] radii = {
-                "15 mét", "20 mét", "25 mét", "30 mét",
-                "50 mét", "100 mét", "200 mét", "300 mét", "400 mét", "500 mét"
-            };
+        "15 mét", "20 mét", "25 mét", "30 mét",
+        "50 mét", "100 mét", "200 mét", "300 mét", "400 mét", "500 mét"
+    };
 
             var result = await DisplayActionSheet("Bán kính kích hoạt", "Hủy", null, radii);
 
             if (result != null && result != "Hủy")
             {
-                // ✅ Map giá trị hiển thị sang giá trị số (mét)
                 double radiusValue = result switch
                 {
                     "15 mét" => 15.0,
@@ -155,19 +153,18 @@ namespace doanC_.Views
                     _ => 15.0
                 };
 
-                // ✅ Lưu cả giá trị số và text hiển thị
                 Preferences.Set("GeoFenceRadiusValue", radiusValue);
                 Preferences.Set("GeoFenceRadius", result);
 
-                // ✅ Set text cho RadiusLabel
                 if (RadiusLabel != null) RadiusLabel.Text = result;
 
-                // ✅ Cập nhật bán kính trong GeoFenceService NGAY LẬP TỨC
                 _geoFenceService.UpdateRadius(radiusValue);
 
                 Debug.WriteLine($"[SettingsPage] Radius updated to: {radiusValue}m - Display: {result}");
 
-                // ✅ Hiển thị thông báo xác nhận
+                // ✅ THÊM DÒNG NÀY - GỬI THÔNG BÁO CHO MAP PAGE
+                MessagingCenter.Send(this, "RadiusChanged", radiusValue);
+
                 await DisplayAlert("Thành công", $"Đã cập nhật bán kính kích hoạt thành {result}", "OK");
             }
         }

@@ -16,43 +16,6 @@
                       AbsoluteLayout.LayoutBounds="0,0,1,1"
                       AbsoluteLayout.LayoutFlags="All"/>
 
-            <!-- Thanh tìm kiếm -->
-            <Border BackgroundColor="White"
-                    StrokeShape="RoundRectangle 20"
-                    Padding="10"
-                    Margin="20,20,20,0"
-                    AbsoluteLayout.LayoutBounds="0.5,0.08,0.9,60"
-                    AbsoluteLayout.LayoutFlags="PositionProportional,WidthProportional">
-
-                <Grid ColumnDefinitions="Auto,*,Auto">
-
-                    <Label Text="🔍"
-                           FontSize="18"
-                           VerticalOptions="Center"/>
-
-                    <Entry x:Name="SearchEntry"
-                           Placeholder="{Binding SearchPlaceholder}"
-                           Grid.Column="1"
-                           FontSize="14"
-                           VerticalOptions="Center"
-                           Margin="10,0,0,0"/>
-
-                    <Border Grid.Column="2"
-                            BackgroundColor="#EEE"
-                            StrokeShape="RoundRectangle 15"
-                            Padding="10,5">
-
-                        <Label x:Name="LanguageLabel"
-                               Text="{Binding LanguageCode}"
-                               FontSize="10"
-                               VerticalOptions="Center"/>
-
-                    </Border>
-
-                </Grid>
-
-            </Border>
-
             <Border BackgroundColor="White"
                     StrokeShape="RoundRectangle 20"
                     Padding="12,8"

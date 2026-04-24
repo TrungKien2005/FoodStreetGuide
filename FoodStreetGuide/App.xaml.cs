@@ -3,7 +3,7 @@ using doanC_.Models;
 using doanC_.Services.Api;
 using doanC_.Services.Data;
 using doanC_.Services.Localization;
-using doanC_.Services.LocationTracking;  // 👈 THÊM DÒNG NÀY
+using doanC_.Services.LocationTracking;
 using System.Diagnostics;
 using Microsoft.Maui.Storage;
 
@@ -11,7 +11,7 @@ namespace doanC_
 {
     public partial class App : Application
     {
-        private DeviceTrackingService _deviceTrackingService;  // 👈 THÊM DÒNG NÀY
+        private DeviceTrackingService _deviceTrackingService;
 
         public App()
         {
@@ -86,33 +86,36 @@ namespace doanC_
 
             try
             {
-                // Try to notify server that app/device is offline immediately
-                if (_deviceTrackingService != null)
-                {
-                    // run synchronously to ensure server receives the call before process suspends in many platforms
-                    Task.Run(async () => await _deviceTrackingService.UntrackAsync()).GetAwaiter().GetResult();
-                }
+                // Chuyển sang background mode (giảm heartbeat xuống 30s)
+                _deviceTrackingService?.OnAppBackground();
+                Debug.WriteLine("[App] 💤 App moving to background, heartbeat reduced");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[App] ❌ Untrack error on sleep: {ex.Message}");
+                Debug.WriteLine($"[App] ❌ Error on background: {ex.Message}");
             }
             finally
             {
+                // Stop heartbeat (tự động báo offline)
                 _deviceTrackingService?.StopHeartbeat();
-                Debug.WriteLine("[App] 💤 App sleeping, stopped heartbeat and requested untrack");
+                Debug.WriteLine("[App] 💤 App sleep completed");
             }
         }
 
         protected override void OnResume()
         {
             base.OnResume();
+
+            // Chuyển sang foreground mode (tăng heartbeat lên 5s)
+            _deviceTrackingService?.OnAppForeground();
+
             Task.Run(async () =>
             {
                 if (_deviceTrackingService != null)
                 {
+                    // Khởi tạo lại tracking (gửi Track và start heartbeat mới)
                     await _deviceTrackingService.InitializeAsync();
-                    Debug.WriteLine("[App] 🔄 App resumed, restarted tracking");
+                    Debug.WriteLine("[App] 🔄 App resumed, tracking restarted");
                 }
             });
         }

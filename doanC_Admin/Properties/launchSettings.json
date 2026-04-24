@@ -2,6 +2,7 @@
     "profiles": {
         "doanC_Admin": {
             "commandName": "Project",
+            "dotnetRunMessages": true,
             "launchBrowser": true,
             "launchUrl": "",
             "applicationUrl": "http://localhost:5225",

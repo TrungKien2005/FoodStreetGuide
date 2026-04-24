@@ -43,12 +43,11 @@ namespace doanC_Admin.Controllers.Api
                         AppVersion = request.AppVersion,
                         FirstSeen = DateTime.Now,
                         LastActivity = DateTime.Now,
-                        IsActive = true
+                        IsActive = true,
+                        TotalScans = 0,
+                        TotalListens = 0
                     };
                     _context.DeviceTracking.Add(device);
-
-                    await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                        "🆕 Thiết bị mới", $"Thiết bị {request.DeviceName} vừa kết nối!", "info");
                 }
                 else
                 {
@@ -56,13 +55,46 @@ namespace doanC_Admin.Controllers.Api
                     device.IsActive = true;
                     if (!string.IsNullOrEmpty(request.DeviceName))
                         device.DeviceName = request.DeviceName;
+                    if (!string.IsNullOrEmpty(request.Platform))
+                        device.Platform = request.Platform;
                 }
 
                 await _context.SaveChangesAsync();
 
+                // ✅ Gửi real-time update qua SignalR
                 await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification",
+                    "🟢 Thiết bị hoạt động", $"{device.DeviceName} đã kết nối", "success");
 
-                return Ok(new { success = true });
+                return Ok(new { success = true, device });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("UpdateHeartbeat")]
+        public async Task<IActionResult> UpdateHeartbeat([FromBody] HeartbeatRequest request)
+        {
+            try
+            {
+                var device = await _context.DeviceTracking
+                    .FirstOrDefaultAsync(d => d.DeviceUniqueId == request.DeviceUniqueId);
+
+                if (device != null)
+                {
+                    device.LastActivity = DateTime.Now;
+                    device.IsActive = true;
+                    await _context.SaveChangesAsync();
+
+                    // ✅ Gửi refresh nhẹ, không spam notification
+                    await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
+
+                    return Ok(new { success = true });
+                }
+
+                return NotFound(new { success = false, message = "Device not found" });
             }
             catch (Exception ex)
             {
@@ -75,9 +107,6 @@ namespace doanC_Admin.Controllers.Api
         {
             try
             {
-                if (string.IsNullOrEmpty(request.DeviceUniqueId))
-                    return BadRequest(new { success = false, message = "deviceUniqueId required" });
-
                 var device = await _context.DeviceTracking
                     .FirstOrDefaultAsync(d => d.DeviceUniqueId == request.DeviceUniqueId);
 
@@ -87,10 +116,9 @@ namespace doanC_Admin.Controllers.Api
                     device.LastActivity = DateTime.Now;
                     await _context.SaveChangesAsync();
 
-                    // Notify clients to refresh device list immediately
                     await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                        "📴 Thiết bị ngắt kết nối", $"Thiết bị {device.DeviceName ?? request.DeviceUniqueId} đã ngắt kết nối", "info");
+                        "🔴 Thiết bị ngắt kết nối", $"{device.DeviceName} đã offline", "warning");
                 }
 
                 return Ok(new { success = true });
@@ -112,43 +140,25 @@ namespace doanC_Admin.Controllers.Api
                 if (device != null)
                 {
                     device.LastActivity = DateTime.Now;
+                    device.IsActive = true;
 
                     if (request.ActivityType == "QRScan")
                     {
                         device.TotalScans++;
-
-                        await _hubContext.Clients.All.SendAsync("ReceiveNewData", "QRScan", device.TotalScans);
+                        await _hubContext.Clients.All.SendAsync("RefreshStats");
                         await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                            "📱 QR Code mới", $"Có 1 lượt quét mới từ {device.DeviceName}!", "success");
-                        await _hubContext.Clients.All.SendAsync("RefreshDashboard");
+                            "📱 QR Scan mới", $"{device.DeviceName} vừa quét QR code", "info");
                     }
                     else if (request.ActivityType == "TTSListen")
                     {
                         device.TotalListens++;
-
-                        await _hubContext.Clients.All.SendAsync("ReceiveNewData", "TTSListen", device.TotalListens);
+                        await _hubContext.Clients.All.SendAsync("RefreshStats");
                         await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                            "🎧 Audio được nghe", $"Đã có 1 lượt nghe từ {device.DeviceName}!", "info");
-                    }
-                    else if (request.ActivityType == "ViewList")
-                    {
-                        await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                            "👁️ Xem danh sách", $"Người dùng đang xem danh sách địa điểm", "info");
-                    }
-                    else if (request.ActivityType == "ViewDetail")
-                    {
-                        var point = await _context.LocationPoints
-                            .Where(p => p.PointId == request.PointId)
-                            .Select(p => p.Name)
-                            .FirstOrDefaultAsync();
-
-                        await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-                            "📍 Xem chi tiết", $"Đang xem: {point ?? "địa điểm"}", "info");
+                            "🎧 Audio được nghe", $"{device.DeviceName} vừa nghe audio", "info");
                     }
 
                     await _context.SaveChangesAsync();
-
-                    await _hubContext.Clients.All.SendAsync("RefreshStats");
+                    await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
                 }
 
                 return Ok(new { success = true });
@@ -163,9 +173,11 @@ namespace doanC_Admin.Controllers.Api
         [AllowAnonymous]
         public async Task<IActionResult> GetActiveDevices()
         {
-            // Changed: consider active devices within last 30 seconds for faster result
+            // ✅ Active nếu có hoạt động trong 2 phút gần đây
+            var activeThreshold = DateTime.Now.AddMinutes(-2);
+
             var activeDevices = await _context.DeviceTracking
-                .Where(d => d.IsActive && d.LastActivity >= DateTime.Now.AddSeconds(-30))
+                .Where(d => d.IsActive == true && d.LastActivity >= activeThreshold)
                 .OrderByDescending(d => d.LastActivity)
                 .Select(d => new
                 {
@@ -175,7 +187,9 @@ namespace doanC_Admin.Controllers.Api
                     d.Platform,
                     d.LastActivity,
                     d.TotalScans,
-                    d.TotalListens
+                    d.TotalListens,
+                    Status = "🟢 Online",
+                    LastActivityFormatted = d.LastActivity.ToString("HH:mm:ss dd/MM")
                 })
                 .ToListAsync();
 
@@ -189,71 +203,35 @@ namespace doanC_Admin.Controllers.Api
             try
             {
                 var today = DateTime.Today;
-                var last30Seconds = DateTime.Now.AddSeconds(-30);
-                var last30Minutes = DateTime.Now.AddMinutes(-30);
+                var activeThreshold = DateTime.Now.AddMinutes(-2);
+
+                // ✅ Thiết bị online (có hoạt động trong 2 phút)
+                var activeDevices = await _context.DeviceTracking
+                    .CountAsync(d => d.IsActive == true && d.LastActivity >= activeThreshold);
+
+                // ✅ Tổng số thiết bị từng kết nối
+                var totalDevices = await _context.DeviceTracking.CountAsync();
+
+                // ✅ Thống kê từ QRScanLogs
                 var totalScans = await _context.QRScanLogs.CountAsync();
                 var todayScans = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= today);
                 var scansLastHour = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Now.AddHours(-1));
 
-                // Số thiết bị hoạt động trong 30 phút qua
-                var activeDevices = await _context.QRScanLogs
-                    .Where(s => s.ScanTime >= last30Minutes)
-                    .Select(s => s.DeviceId)
-                    .Distinct()
-                    .CountAsync();
-
-                // Tổng số thiết bị từng ghi nhận
-                var totalDevices = await _context.QRScanLogs
-                    .Select(s => s.DeviceId)
-                    .Distinct()
-                    .CountAsync();
-
+                // ✅ Thống kê từ TTSLogs  
                 var totalListens = await _context.TTSLogs.CountAsync();
                 var todayListens = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= today);
                 var listensLastHour = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= DateTime.Now.AddHours(-1));
 
-                // Thời gian nghe trung bình
-                var avgListenTime = 0.0;
-                var listenTimes = await _context.TTSLogs
-                    .Where(t => t.DurationSeconds.HasValue)
-                    .Select(t => t.DurationSeconds.Value)
-                    .ToListAsync();
-                if (listenTimes.Any())
-                {
-                    avgListenTime = listenTimes.Average();
-                }
-                var activeAdmins = await _context.AdminSessions
-                    .CountAsync(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5));
-
-                var totalAdmins = await _context.AdminUsers.CountAsync();
-                var deviceTrackingCount = await _context.DeviceTracking.CountAsync();
-                var activeDeviceTracking = await _context.DeviceTracking
-                    .CountAsync(d => d.IsActive && d.LastActivity >= last30Seconds);
-
                 var stats = new
                 {
-                    // Thống kê từ QRScanLogs
+                    activeDevices = activeDevices,
+                    totalDevices = totalDevices,
                     totalScans = totalScans,
                     todayScans = todayScans,
                     scansLastHour = scansLastHour,
-                    activeDevices = activeDevices,
-                    totalDevices = totalDevices,
-
-                    // Thống kê từ TTSLogs
                     totalListens = totalListens,
                     todayListens = todayListens,
                     listensLastHour = listensLastHour,
-                    avgListenTime = Math.Round(avgListenTime, 1),
-
-                    // Thống kê Admin
-                    activeAdmins = activeAdmins,
-                    totalAdmins = totalAdmins,
-
-                    // Thống kê từ DeviceTracking (cũ, để tương thích)
-                    deviceTrackingCount = deviceTrackingCount,
-                    activeDeviceTracking = activeDeviceTracking,
-
-                    // Thời gian cập nhật
                     updatedAt = DateTime.Now
                 };
 
@@ -261,25 +239,8 @@ namespace doanC_Admin.Controllers.Api
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetStats] Error: {ex.Message}");
                 return BadRequest(new { success = false, message = ex.Message });
             }
-        }
-
-        [HttpGet("GetActiveUsers")]
-        public async Task<IActionResult> GetActiveUsers()
-        {
-            var users = await _context.AdminSessions
-                .Where(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5))
-                .Select(s => new
-                {
-                    s.AdminId,
-                    s.Username,
-                    s.LastActivity,
-                    s.IPAddress
-                })
-                .ToListAsync();
-            return Ok(users);
         }
 
         [HttpPost("SyncDeviceTracking")]
@@ -288,13 +249,13 @@ namespace doanC_Admin.Controllers.Api
         {
             try
             {
-                // Lấy tất cả thiết bị từ QRScanLogs (DeviceId là string)
+                // ✅ Đồng bộ dữ liệu từ logs vào DeviceTracking
                 var devices = await _context.QRScanLogs
                     .Where(s => !string.IsNullOrEmpty(s.DeviceId))
                     .GroupBy(s => s.DeviceId)
                     .Select(g => new
                     {
-                        DeviceUniqueId = g.Key,           // string - đây là ID từ QRScanLogs
+                        DeviceUniqueId = g.Key,
                         TotalScans = g.Count(),
                         LastScan = g.Max(s => s.ScanTime)
                     })
@@ -302,7 +263,6 @@ namespace doanC_Admin.Controllers.Api
 
                 foreach (var device in devices)
                 {
-                    // ✅ ĐÚNG: Tìm theo DeviceUniqueId (string so sánh với string)
                     var existing = await _context.DeviceTracking
                         .FirstOrDefaultAsync(d => d.DeviceUniqueId == device.DeviceUniqueId);
 
@@ -311,10 +271,9 @@ namespace doanC_Admin.Controllers.Api
 
                     if (existing == null)
                     {
-                        // ✅ ĐÚNG: Không gán DeviceId (int), để database tự tạo
                         _context.DeviceTracking.Add(new DeviceTracking
                         {
-                            DeviceUniqueId = device.DeviceUniqueId,  // Gán string vào DeviceUniqueId
+                            DeviceUniqueId = device.DeviceUniqueId,
                             TotalScans = device.TotalScans,
                             TotalListens = totalListens,
                             LastActivity = device.LastScan,
@@ -334,6 +293,8 @@ namespace doanC_Admin.Controllers.Api
                 }
 
                 await _context.SaveChangesAsync();
+                await _hubContext.Clients.All.SendAsync("RefreshDeviceList");
+                await _hubContext.Clients.All.SendAsync("RefreshStats");
 
                 return Ok(new { success = true, message = $"Đã đồng bộ {devices.Count} thiết bị" });
             }
@@ -353,6 +314,11 @@ namespace doanC_Admin.Controllers.Api
         public string AppVersion { get; set; } = string.Empty;
         public double? LastLocationLat { get; set; }
         public double? LastLocationLng { get; set; }
+    }
+
+    public class HeartbeatRequest
+    {
+        public string DeviceUniqueId { get; set; } = string.Empty;
     }
 
     public class ActivityTrackingRequest

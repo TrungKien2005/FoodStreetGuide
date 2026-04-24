@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model DashboardModel
 @{
     ViewData["Title"] = "Dashboard | FoodStreet Guide";
@@ -99,11 +99,11 @@
         padding: 1.25rem;
     }
     .badge-orange {
-        background: #FFF3E0;
-        color: #FF5722;
-        padding: 4px 12px;
+        background: linear-gradient(135deg, #ff6b35, #ff8c42);
+        color: white;
+        padding: 5px 12px;
         border-radius: 20px;
-        font-size: 0.7rem;
+        font-size: 13px;
         font-weight: 500;
     }
     .trend-up { color: #27ae60; }
@@ -127,6 +127,65 @@
     }
     .login-history-table td, .login-history-table th {
         padding: 0.5rem;
+    }
+    /* Device table styling */
+    .device-row {
+        transition: background-color 0.3s ease;
+    }
+
+        .device-row:hover {
+            background-color: #f8f9fa;
+        }
+
+    .online-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+        animation: pulse 2s infinite;
+    }
+
+        .online-indicator.online {
+            background-color: #28a745;
+            box-shadow: 0 0 5px #28a745;
+        }
+
+        .online-indicator.offline {
+            background-color: #dc3545;
+        }
+    @@keyframes pulse {
+        0%
+
+    {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    }
+
+    #deviceCount {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+
+    .badge-orange {
+        background: linear-gradient(135deg, #ff6b35, #ff8c42);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
     }
 </style>
 
@@ -530,15 +589,23 @@
             </div>
         </div>
     </div>
-</div> 
+</div>
 
     <!-- ========== THIẾT BỊ ĐANG HOẠT ĐỘNG (MAUI) ========== -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="chart-card">
-                <div class="card-header">
-                    <i class="fas fa-mobile-alt"></i> Thiết bị MAUI đang hoạt động
-                    <span class="badge-orange ms-2" id="deviceCount">0</span>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-mobile-alt"></i>
+                        <strong>Thiết bị MAUI đang hoạt động</strong>
+                        <span class="badge-orange ms-2" id="deviceCount">0</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshDevices()">
+                            <i class="fas fa-sync-alt"></i> Làm mới
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -546,13 +613,15 @@
                             <thead class="table-light">
                                 <tr>
                                     <th><i class="fas fa-mobile"></i> Thiết bị</th>
-                                    <th><i class="fas fa-chart-line"></i> Hoạt động cuối</th>
+                                    <th><i class="fab fa-android"></i> Platform</th>
+                                    <th><i class="fas fa-clock"></i> Hoạt động cuối</th>
                                     <th><i class="fas fa-qrcode"></i> QR Scans</th>
                                     <th><i class="fas fa-headphones"></i> TTS Listens</th>
+                                    <th><i class="fas fa-circle"></i> Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody id="devicesTableBody">
-                                <tr><td colspan="4" class="text-center">Đang tải...</td></tr>
+                                <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -615,100 +684,111 @@
 
     <script>
         // ========== BIỂU ĐỒ ==========
-        new Chart(document.getElementById('movementChart'), {
-            type: 'line',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.MovementLabels)),
-                datasets: [{
-                    label: 'Lượt di chuyển',
-                    data: @Html.Raw(Json.Serialize(Model.MovementData)),
-                    borderColor: '#FF5722',
-                    backgroundColor: 'rgba(255,87,34,0.05)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#FF5722',
-                    pointBorderColor: '#fff',
-                    pointRadius: 4
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: true }
-        });
+        let topListenedChart = null;
+        let avgTimeChart = null;
+        
+        try {
+            new Chart(document.getElementById('movementChart'), {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.MovementLabels)),
+                    datasets: [{
+                        label: 'Lượt di chuyển',
+                        data: @Html.Raw(Json.Serialize(Model.MovementData)),
+                        borderColor: '#FF5722',
+                        backgroundColor: 'rgba(255,87,34,0.05)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#FF5722',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
 
-        new Chart(document.getElementById('topListenedChart'), {
-            type: 'bar',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.TopListenedNames)),
-                datasets: [{
-                    label: 'Lượt nghe',
-                    data: @Html.Raw(Json.Serialize(Model.TopListenedCounts)),
-                    backgroundColor: '#FF5722',
-                    borderRadius: 8
-                }]
-            },
-            options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } } }
-        });
+            topListenedChart = new Chart(document.getElementById('topListenedChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.TopListenedNames)),
+                    datasets: [{
+                        label: 'Lượt nghe',
+                        data: @Html.Raw(Json.Serialize(Model.TopListenedCounts)),
+                        backgroundColor: '#FF5722',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } } }
+            });
 
-        new Chart(document.getElementById('avgTimeChart'), {
-            type: 'bar',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.AvgTimeLabels)),
-                datasets: [{
-                    label: 'Thời gian nghe (giây)',
-                    data: @Html.Raw(Json.Serialize(Model.AvgTimeData)),
-                    backgroundColor: '#FF8A65',
-                    borderRadius: 8
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Giây' } } } }
-        });
+            avgTimeChart = new Chart(document.getElementById('avgTimeChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.AvgTimeLabels)),
+                    datasets: [{
+                        label: 'Thời gian nghe (giây)',
+                        data: @Html.Raw(Json.Serialize(Model.AvgTimeData)),
+                        backgroundColor: '#FF8A65',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Giây' } } } }
+            });
+        } catch (chartErr) {
+            console.error("Lỗi khởi tạo biểu đồ ban đầu:", chartErr);
+        }
 
         // ========== HEATMAP ==========
         (function() {
-            var heatmapPoints = @Html.Raw(Json.Serialize(Model.HeatmapPoints));
-            var canvas = document.getElementById('heatmapCanvas');
-            if (!canvas || !heatmapPoints.length) return;
+            try {
+                var heatmapPoints = @Html.Raw(Json.Serialize(Model.HeatmapPoints));
+                var canvas = document.getElementById('heatmapCanvas');
+                if (!canvas || !heatmapPoints || !heatmapPoints.length) return;
 
-            var ctx = canvas.getContext('2d');
-            var width = canvas.clientWidth;
-            var height = canvas.clientHeight;
-            canvas.width = width;
-            canvas.height = height;
+                var ctx = canvas.getContext('2d');
+                var width = canvas.clientWidth;
+                var height = canvas.clientHeight;
+                canvas.width = width;
+                canvas.height = height;
 
-            var lats = heatmapPoints.map(p => p.lat);
-            var lngs = heatmapPoints.map(p => p.lng);
-            var minLat = Math.min(...lats);
-            var maxLat = Math.max(...lats);
-            var minLng = Math.min(...lngs);
-            var maxLng = Math.max(...lngs);
+                var lats = heatmapPoints.map(p => p.lat);
+                var lngs = heatmapPoints.map(p => p.lng);
+                var minLat = Math.min(...lats);
+                var maxLat = Math.max(...lats);
+                var minLng = Math.min(...lngs);
+                var maxLng = Math.max(...lngs);
 
-            function latToY(lat) { return ((lat - minLat) / (maxLat - minLat)) * height; }
-            function lngToX(lng) { return ((lng - minLng) / (maxLng - minLng)) * width; }
+                function latToY(lat) { return ((lat - minLat) / (maxLat - minLat)) * height; }
+                function lngToX(lng) { return ((lng - minLng) / (maxLng - minLng)) * width; }
 
-            var maxIntensity = Math.max(...heatmapPoints.map(p => p.intensity), 1);
+                var maxIntensity = Math.max(...heatmapPoints.map(p => p.intensity), 1);
 
-            for (var i = 0; i < heatmapPoints.length; i++) {
-                var point = heatmapPoints[i];
-                var x = lngToX(point.lng);
-                var y = latToY(point.lat);
-                var intensity = point.intensity / maxIntensity;
+                for (var i = 0; i < heatmapPoints.length; i++) {
+                    var point = heatmapPoints[i];
+                    var x = lngToX(point.lng);
+                    var y = latToY(point.lat);
+                    var intensity = point.intensity / maxIntensity;
 
-                var r, g, b;
-                if (intensity < 0.25) { r = 0; g = 255; b = 0; }
-                else if (intensity < 0.5) { r = 255; g = 204; b = 0; }
-                else if (intensity < 0.75) { r = 255; g = 102; b = 0; }
-                else { r = 255; g = 0; b = 0; }
+                    var r, g, b;
+                    if (intensity < 0.25) { r = 0; g = 255; b = 0; }
+                    else if (intensity < 0.5) { r = 255; g = 204; b = 0; }
+                    else if (intensity < 0.75) { r = 255; g = 102; b = 0; }
+                    else { r = 255; g = 0; b = 0; }
 
-                var radius = 15 + intensity * 20;
-                var gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.8)`);
-                gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.4)`);
-                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                    var radius = 15 + intensity * 20;
+                    var gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+                    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.8)`);
+                    gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.4)`);
+                    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
 
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = gradient;
-                ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+            } catch (hmErr) {
+                console.error("Lỗi vẽ heatmap:", hmErr);
             }
         })();
 
@@ -895,102 +975,6 @@
             showToast("Địa điểm mới cần duyệt", `🏪 ${ownerName} vừa đăng ký địa điểm "${poiName}"`, "warning");
         });
 
-        connection.on("RefreshDashboard", () => {
-            console.log("🔄 Refreshing dashboard data...");
-            location.reload();
-        });
-
-        connection.on("RefreshDeviceList", function () {
-            loadActiveDevices();
-        });
-
-        connection.on("RefreshStats", function () {
-            loadStats();
-        });
-
-        connection.on("UserConnected", function (connectionId) {
-            console.log(`👤 User connected (upper): ${connectionId}`);
-        });
-
-        connection.on("UserDisconnected", function (connectionId) {
-            console.log(`👋 User disconnected (upper): ${connectionId}`);
-        });
-
-        // ========== API CALLS ==========
-        async function loadActiveDevices() {
-            try {
-                const response = await fetch('/api/DeviceTracking/GetActiveDevices');
-                const devices = await response.json();
-                const tbody = document.getElementById('devicesTableBody');
-                if (tbody) {
-                    if (devices && devices.length > 0) {
-                        tbody.innerHTML = devices.map(d => `
-                            <tr>
-                                <td><strong>${d.deviceName || 'Unknown'}</strong><br/><small>${d.platform || 'Unknown'}</small></td>
-                                <td>${new Date(d.lastActivity).toLocaleString()}</td>
-                                <td><span class="badge bg-primary">${d.totalScans || 0}</span></td>
-                                <td><span class="badge bg-success">${d.totalListens || 0}</span></td>
-                            </tr>
-                        `).join('');
-                    } else {
-                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td>' +
-                                         '<td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td>' +
-                                         '<td colspan="4" class="text-center">Không có thiết bị đang hoạt động</td>' +
-                                         '</table>';
-                    }
-                    const deviceCountEl = document.getElementById('deviceCount');
-                    if (deviceCountEl) deviceCountEl.innerText = String(devices?.length ?? 0);
-                    const activeDevicesEl = document.getElementById('activeDevices');
-                    if (activeDevicesEl) activeDevicesEl.innerText = String(devices?.length ?? 0);
-                }
-            } catch (error) {
-                console.error('Error loading devices:', error);
-                const tbody = document.getElementById('devicesTableBody');
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Lỗi tải dữ liệu</td></tr>';
-                }
-            }
-        }
-
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/DeviceTracking/GetStats');
-                const stats = await response.json();
-
-                if (stats) {
-                    const totalListensEl = document.getElementById('totalListens');
-                    if (totalListensEl) totalListensEl.innerText = (stats.totalListens || 0).toLocaleString();
-
-                    const todayTTSPlaysEl = document.getElementById('todayTTSPlays');
-                    if (todayTTSPlaysEl) todayTTSPlaysEl.innerText = stats.todayListens || 0;
-
-                    const todayScansEl = document.getElementById('todayScans');
-                    if (todayScansEl) todayScansEl.innerText = (stats.todayScans || 0).toLocaleString();
-
-                    const scansLastHourEl = document.getElementById('scansLastHour');
-                    if (scansLastHourEl) scansLastHourEl.innerText = stats.scansLastHour || 0;
-
-                    const activeDevicesEl = document.getElementById('activeDevices');
-                    if (activeDevicesEl) activeDevicesEl.innerText = stats.activeDevices || 0;
-
-                    const activeUsersEl = document.getElementById('activeUsers');
-                    if (activeUsersEl) activeUsersEl.innerText = stats.activeAdmins || 0;
-
-                    const totalLoggedInEl = document.getElementById('totalLoggedIn');
-                    if (totalLoggedInEl) totalLoggedInEl.innerText = stats.totalAdmins || 0;
-
-                    const avgListenTimeEl = document.getElementById('avgListenTime');
-                    if (avgListenTimeEl && stats.avgListenTime) {
-                        avgListenTimeEl.innerHTML = `${stats.avgListenTime}<small>s</small>`;
-                    }
-
-                    console.log('📊 Stats updated:', stats);
-                }
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
-        }
-
         async function loadAdminUsers() {
             try {
                 const response = await fetch('/api/Admin/GetActiveUsers');
@@ -1080,7 +1064,331 @@
                 window.location.href = `?page=1&pageSize=${pageSize}`;
             });
         }
+                // ========== THÊM CÁC HÀM XỬ LÝ DEVICE TRACKING ==========
 
+        // Biến toàn cục
+        let deviceRefreshInterval = null;
+        let lastDeviceCount = 0;
+
+        // Hàm cập nhật thời gian tương đối
+        function formatRelativeTime(dateString) {
+            if (!dateString) return 'Không rõ';
+
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffSeconds = Math.floor((now - date) / 1000);
+
+            if (diffSeconds < 60) return `${diffSeconds} giây trước`;
+            if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} phút trước`;
+            if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} giờ trước`;
+            return date.toLocaleString('vi-VN');
+        }
+
+        // ✅ GIỮ LẠI HÀM NÀY (phiên bản đầy đủ)
+        async function loadActiveDevices() {
+            try {
+                console.log("🔄 Loading active devices...");
+                // Thêm timestamp để vô hiệu hóa cache trình duyệt
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/DeviceTracking/GetActiveDevices?_t=${timestamp}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const devices = await response.json();
+                const deviceCount = devices ? devices.length : 0;
+
+                console.log(`📱 Found ${deviceCount} active device(s)`);
+
+                // Cập nhật badge
+                const deviceCountEl = document.getElementById('deviceCount');
+                const activeDevicesEl = document.getElementById('activeDevices');
+
+                if (deviceCountEl) deviceCountEl.innerText = deviceCount;
+                if (activeDevicesEl) activeDevicesEl.innerText = deviceCount;
+
+                // Cập nhật bảng
+                const tbody = document.getElementById('devicesTableBody');
+                if (!tbody) return;
+
+                if (!devices || devices.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-mobile-alt fa-2x mb-2 d-block"></i>
+                                <span>Không có thiết bị nào đang hoạt động</span>
+                                <br/><small class="text-muted">Đang chờ MAUI app kết nối...</small>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                // Render devices
+                tbody.innerHTML = devices.map(device => {
+                    const deviceName = device.deviceName || device.DeviceName || 'Unknown';
+                    const platform = device.platform || device.Platform || 'Unknown';
+                    const lastActivity = device.lastActivity || device.LastActivity;
+                    const totalScans = device.totalScans || device.TotalScans || 0;
+                    const totalListens = device.totalListens || device.TotalListens || 0;
+                    const deviceId = device.deviceUniqueId || device.DeviceUniqueId || '';
+                    const shortId = deviceId.substring(0, 8);
+                    const isOnline = isRecent(lastActivity);
+
+                    return `
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="fas fa-mobile-alt fa-lg text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>${escapeHtml(deviceName)}</strong><br/>
+                                        <small class="text-muted">ID: ${shortId}...</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <i class="fab fa-${platform.toLowerCase() === 'android' ? 'android' : 'apple'}"></i>
+                                ${escapeHtml(platform)}
+                            </td>
+                            <td>
+                                <span title="${new Date(lastActivity).toLocaleString('vi-VN')}">
+                                    ${formatRelativeTime(lastActivity)}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary rounded-pill">${totalScans.toLocaleString()}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success rounded-pill">${totalListens.toLocaleString()}</span>
+                            </td>
+                            <td>
+                                <div class="online-indicator ${isOnline ? 'online' : 'offline'}"></div>
+                                <small class="${isOnline ? 'text-success' : 'text-muted'}">
+                                    ${isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                                </small>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('❌ Error loading devices:', error);
+                const tbody = document.getElementById('devicesTableBody');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-danger py-4">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>
+                                <span>Lỗi tải dữ liệu thiết bị</span>
+                                <br/><small>${error.message}</small>
+                                <br/><button class="btn btn-sm btn-outline-danger mt-2" onclick="loadActiveDevices()">
+                                    <i class="fas fa-sync-alt"></i> Thử lại
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+
+        // Helper functions
+        function isRecent(lastActivity) {
+            if (!lastActivity) return false;
+            const lastTime = new Date(lastActivity);
+            const now = new Date();
+            const diffMinutes = (now - lastTime) / 1000 / 60;
+            return diffMinutes < 2;
+        }
+
+        function formatRelativeTime(dateString) {
+            if (!dateString) return 'Không rõ';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffSeconds = Math.floor((now - date) / 1000);
+
+            if (diffSeconds < 60) return `${diffSeconds} giây trước`;
+            if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} phút trước`;
+            if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} giờ trước`;
+            return date.toLocaleString('vi-VN');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function refreshDevices() {
+            loadActiveDevices();
+            showToast("Làm mới", "Đã cập nhật danh sách thiết bị", "success");
+        }
+
+        // Hàm tải thống kê tổng hợp
+        async function loadStats() {
+            try {
+                console.log("📊 Loading stats...");
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/DeviceTracking/GetStats?_t=${timestamp}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const stats = await response.json();
+                console.log("📊 Stats received:", stats);
+
+                // Cập nhật các element
+                const elements = {
+                    'totalDevices': stats.totalDevices || 0,
+                    'totalScans': stats.totalScans || 0,
+                    'todayScans': stats.todayScans || 0,
+                    'totalListens': stats.totalListens || 0,
+                    'todayListens': stats.todayListens || 0,
+                    'activeDevices': stats.activeDevices || 0
+                };
+
+                for (const [id, value] of Object.entries(elements)) {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        if (id === 'totalListens' || id === 'totalScans') {
+                            el.innerText = value.toLocaleString();
+                        } else {
+                            el.innerText = value;
+                        }
+                    }
+                }
+
+                // Cập nhật thời gian cập nhật cuối
+                const lastUpdateEl = document.getElementById('lastUpdate');
+                if (lastUpdateEl) {
+                    lastUpdateEl.innerText = `Cập nhật lúc: ${new Date().toLocaleTimeString('vi-VN')}`;
+                }
+
+                // Gọi lại loadActiveDevices để đồng bộ
+                await loadActiveDevices();
+
+            } catch (error) {
+                console.error('❌ Error loading stats:', error);
+            }
+        }
+
+        // Hàm refresh toàn bộ
+        async function refreshAllData() {
+            console.log("🔄 Refreshing all dashboard data...");
+            await Promise.all([
+                loadStats(),
+                loadActiveDevices()
+            ]);
+        }
+
+        // ========== SIGNALR EVENT HANDLERS BỔ SUNG ==========
+
+        // Lắng nghe RefreshDeviceList (chữ hoa chữ thường đều xử lý)
+        connection.on("RefreshDeviceList", () => {
+            console.log("🔄 SignalR: Refresh device list");
+            loadActiveDevices();
+        });
+
+        connection.on("refreshdevicelist", () => {
+            console.log("🔄 SignalR: refreshdevicelist");
+            loadActiveDevices();
+        });
+
+        connection.on("RefreshStats", () => {
+            console.log("📊 SignalR: Refresh stats");
+            loadStats();
+        });
+
+        connection.on("refreshstats", () => {
+            console.log("📊 SignalR: refreshstats");
+            loadStats();
+        });
+
+        // Lắng nghe sự kiện device online/offline
+        connection.on("DeviceOnline", (deviceName, deviceId) => {
+            console.log(`🟢 Device online: ${deviceName}`);
+            showToast("Thiết bị kết nối", `${deviceName} vừa kết nối vào hệ thống`, "success");
+            loadActiveDevices();
+            loadStats();
+        });
+
+        connection.on("DeviceOffline", (deviceName, deviceId) => {
+            console.log(`🔴 Device offline: ${deviceName}`);
+            showToast("Thiết bị ngắt kết nối", `${deviceName} đã ngắt kết nối`, "warning");
+            loadActiveDevices();
+            loadStats();
+        });
+
+        // ========== KHỞI TẠO ==========
+
+        // Khởi tạo giá trị ban đầu
+        function initDeviceTracking() {
+            console.log("🚀 Initializing Device Tracking on Dashboard...");
+
+            // Tạo các element nếu chưa có
+            ensureElements();
+
+            // Load dữ liệu lần đầu
+            refreshAllData();
+
+            // Auto refresh mỗi 10 giây (fallback)
+            if (deviceRefreshInterval) clearInterval(deviceRefreshInterval);
+            deviceRefreshInterval = setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    loadActiveDevices();
+                }
+            }, 10000);
+        }
+
+        // Đảm bảo các element tồn tại
+        function ensureElements() {
+            const requiredElements = [
+                'deviceCount', 'activeDevices', 'devicesTableBody',
+                'totalDevices', 'totalScans', 'todayScans',
+                'totalListens', 'todayListens', 'activeRate'
+            ];
+
+            for (const id of requiredElements) {
+                if (!document.getElementById(id)) {
+                    console.warn(`⚠️ Element #${id} not found in DOM`);
+                }
+            }
+        }
+
+        // Gọi khởi tạo khi DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDeviceTracking);
+        } else {
+            initDeviceTracking();
+        }
+
+        // Refresh khi tab active
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log("👁️ Tab active, refreshing device data...");
+                loadActiveDevices();
+                loadStats();
+            }
+        });
         // Kết nối SignalR
         connection.start()
             .then(function () {
@@ -1102,48 +1410,6 @@
             console.log("✅ SignalR reconnected! ConnectionId:", connectionId);
         });
 
-        // Auto refresh mỗi 30 giây
-        setInterval(loadActiveDevices, 30000);
-        setInterval(loadStats, 60000);
-
-                // ========== HÀM CẬP NHẬT LẠI 2 BIỂU ĐỒ SAU KHI CÓ DỮ LIỆU MỚI ==========
-
-        // Lưu reference của charts để cập nhật sau
-        let topListenedChart = null;
-        let avgTimeChart = null;
-
-        // Hàm khởi tạo biểu đồ
-        function initCharts() {
-            // Top Listened Chart
-            topListenedChart = new Chart(document.getElementById('topListenedChart'), {
-                type: 'bar',
-                data: {
-                    labels: @Html.Raw(Json.Serialize(Model.TopListenedNames)),
-                    datasets: [{
-                        label: 'Lượt nghe',
-                        data: @Html.Raw(Json.Serialize(Model.TopListenedCounts)),
-                        backgroundColor: '#FF5722',
-                        borderRadius: 8
-                    }]
-                },
-                options: { responsive: true, indexAxis: 'y', plugins: { legend: { position: 'top' } } }
-            });
-
-            // Avg Time Chart
-            avgTimeChart = new Chart(document.getElementById('avgTimeChart'), {
-                type: 'bar',
-                data: {
-                    labels: @Html.Raw(Json.Serialize(Model.AvgTimeLabels)),
-                    datasets: [{
-                        label: 'Thời gian nghe (giây)',
-                        data: @Html.Raw(Json.Serialize(Model.AvgTimeData)),
-                        backgroundColor: '#FF8A65',
-                        borderRadius: 8
-                    }]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Giây' } } } }
-            });
-        }
 
         // Hàm reload dữ liệu cho 2 biểu đồ từ server
         async function reloadChartData() {
@@ -1151,7 +1417,7 @@
                 // Gọi API lấy dữ liệu mới nhất cho 2 biểu đồ
                 const response = await fetch('/api/RealTime/top-locations?metric=listens&take=5');
                 const topResult = await response.json();
-
+                    
                 if (topResult.success && topResult.data) {
                     // Cập nhật Top Listened Chart
                     topListenedChart.data.labels = topResult.data.map(item => item.locationName);
@@ -1175,6 +1441,7 @@
             }
         }
 
+        // Lắng nghe sự kiện NewTTSListen
         connection.on("NewTTSListen", (locationName, durationSeconds, deviceId) => {
             console.log(`🎧 New TTS listen at ${locationName} - Duration: ${durationSeconds}s from ${deviceId}`);
 
@@ -1186,6 +1453,8 @@
             reloadChartData();
 
             showToast("Audio Guide mới", `🎧 Có lượt nghe thuyết minh tại: ${locationName}`, "info");
+            loadActiveDevices();
+            loadStats();
         });
 
         // Sửa event NewQRScan
@@ -1200,7 +1469,34 @@
             showToast("QR Code mới", `🔔 Lượt quét mới tại: ${locationName}`, "info");
         });
 
-        // Khởi tạo charts khi trang load
-        initCharts();
+        // Refresh khi tab được active lại
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log("👁️ Tab active, refreshing...");
+                loadActiveDevices();
+                loadStats();
+            }
+        });
+
+        // TỰ ĐỘNG CHẠY NGẦM VÀ LẤY DỮ LIỆU CHẮC CHẮN 100%
+        window.addEventListener('load', function() {
+            console.log("🚀 Trang đã load xong hoàn toàn (window.load) - Đang fetch data...");
+            loadActiveDevices();
+            loadStats();
+
+            // Chạy ngầm mỗi 5 giây
+            setInterval(() => {
+                console.log("⏱️ Đang chạy ngầm lấy dữ liệu tự động...");
+                loadActiveDevices();
+                loadStats();
+            }, 5000);
+        });
+
+        // Dự phòng: Chạy ngay lập tức nếu window.load có vấn đề
+        setTimeout(() => {
+            console.log("🚀 Gọi dự phòng auto-load (setTimeout 1s)...");
+            loadActiveDevices();
+            loadStats();
+        }, 1000);
     </script>
 }
