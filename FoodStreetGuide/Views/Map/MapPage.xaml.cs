@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text;
 using doanC_.Helpers;
 using doanC_.Models;
@@ -29,6 +29,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     private double _currentRadius = 15;
     private LocationPoint _currentSelectedPoi;
     private bool _isFirstLoad = true;
+    private Task _loadPointsTask;
     private CancellationTokenSource _gpsTokenSource;
     private string _currentLanguage = "vi";
     private string _lastLanguage = "vi";
@@ -272,7 +273,16 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    private async Task LoadPoints()
+    private Task LoadPoints()
+    {
+        if (_loadPointsTask == null || _loadPointsTask.IsCompleted)
+        {
+            _loadPointsTask = LoadPointsInternal();
+        }
+        return _loadPointsTask;
+    }
+
+    private async Task LoadPointsInternal()
     {
         try
         {
@@ -297,7 +307,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         if (_originalPoints == null || !_originalPoints.Any()) return;
 
-        _allPoints.Clear();
+        var newPoints = new List<LocationPoint>();
 
         foreach (var original in _originalPoints)
         {
@@ -337,9 +347,10 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
                     translated.Description = original.Description;
                 }
             }
-            _allPoints.Add(translated);
+            newPoints.Add(translated);
         }
 
+        _allPoints = newPoints;
         UpdatePinsOnMap();
     }
 
@@ -389,7 +400,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     private async void OnPinClicked(LocationPoint point)
     {
         _currentSelectedPoi = point;
-        var translatedName = await TranslateTextIfNeeded(point.Name);
+        var translatedName = point.Name;
 
         var listenText = _currentLanguage == "vi" ? "🔊 Nghe thuyết minh" : "🔊 Listen";
         var detailText = _currentLanguage == "vi" ? "📖 Xem chi tiết" : "📖 View details";
@@ -399,7 +410,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
 
         if (action == listenText)
         {
-            var textToSpeak = $"{translatedName}. {await TranslateTextIfNeeded(point.Description ?? "")}";
+            var textToSpeak = $"{translatedName}. {point.Description ?? ""}";
             await TextToSpeech.Default.SpeakAsync(textToSpeak);
         }
         else if (action == detailText)
@@ -408,7 +419,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    private async void CheckNearbyPoints()
+    private void CheckNearbyPoints()
     {
         if (_currentLocation == null || _allPoints == null) return;
 
@@ -437,8 +448,8 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         if (nearest != null)
         {
             _currentSelectedPoi = nearest.Point;
-            var translatedName = await TranslateTextIfNeeded(nearest.Point.Name);
-            var translatedDescription = await TranslateTextIfNeeded(nearest.Point.Description ?? "");
+            var translatedName = nearest.Point.Name;
+            var translatedDescription = nearest.Point.Description ?? "";
 
             var nearbyCount = nearbyPoints.Count;
 
@@ -477,20 +488,6 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    private async Task<string> TranslateTextIfNeeded(string text)
-    {
-        if (string.IsNullOrEmpty(text) || _currentLanguage == "vi") return text;
-        if (_translationService == null) return text;
-        try
-        {
-            return await _translationService.TranslateTextAsync(text, _currentLanguage);
-        }
-        catch
-        {
-            return text;
-        }
-    }
-
     private void RefreshUITexts()
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -522,10 +519,10 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         });
     }
 
-    private async void UpdateSelectedPoiTexts(LocationPoint point)
+    private void UpdateSelectedPoiTexts(LocationPoint point)
     {
-        var translatedName = await TranslateTextIfNeeded(point.Name);
-        var translatedDescription = await TranslateTextIfNeeded(point.Description ?? "");
+        var translatedName = point.Name;
+        var translatedDescription = point.Description ?? "";
         var distance = CalculateDistance(_currentLocation.Latitude, _currentLocation.Longitude, point.Latitude, point.Longitude);
 
         MainThread.BeginInvokeOnMainThread(() =>
@@ -575,8 +572,8 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     {
         if (_currentSelectedPoi != null)
         {
-            var translatedName = await TranslateTextIfNeeded(_currentSelectedPoi.Name);
-            var translatedDescription = await TranslateTextIfNeeded(_currentSelectedPoi.Description ?? "");
+            var translatedName = _currentSelectedPoi.Name;
+            var translatedDescription = _currentSelectedPoi.Description ?? "";
             await TextToSpeech.Default.SpeakAsync($"{translatedName}. {translatedDescription}");
         }
     }
