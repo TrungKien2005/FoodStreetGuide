@@ -35,6 +35,7 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
     private string _lastLanguage = "vi";
     private bool _isTranslating = false;
     private Circle? _radiusCircle;
+    private Dictionary<int, DateTime> _cooldownQueue = new();
 
     // Binding properties
 
@@ -413,7 +414,14 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         if (action == listenText)
         {
             var textToSpeak = $"{translatedName}. {point.Description ?? ""}";
+            
+            // Đưa POI vào hàng đợi cooldown 2 phút
+            _cooldownQueue[point.PointId] = DateTime.Now.AddMinutes(2);
+            
             await TextToSpeech.Default.SpeakAsync(textToSpeak);
+            
+            // Cập nhật lại UI để chuyển sang POI tiếp theo
+            CheckNearbyPoints();
         }
         else if (action == detailText)
         {
@@ -423,10 +431,15 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
 
     private void CheckNearbyPoints()
     {
+        // Dọn dẹp hàng đợi các POI đã hết thời gian cooldown (2 phút)
+        var now = DateTime.Now;
+        var expiredKeys = _cooldownQueue.Where(kv => kv.Value <= now).Select(kv => kv.Key).ToList();
+        foreach (var key in expiredKeys) _cooldownQueue.Remove(key);
+
         if (_currentLocation == null || _allPoints == null) return;
 
-        // Lấy tất cả POI trong bán kính
-        var nearbyPoints = _allPoints
+        // 1. Lấy TẤT CẢ POI trong bán kính
+        var allNearbyPoints = _allPoints
             .Select(p => new {
                 Point = p,
                 Distance = CalculateDistance(_currentLocation.Latitude, _currentLocation.Longitude, p.Latitude, p.Longitude)
@@ -434,18 +447,33 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
             .Where(x => x.Distance <= _currentRadius)
             .ToList();
 
+        // 2. Lọc những POI CHƯA bị cooldown
+        var activePoints = allNearbyPoints
+            .Where(x => !_cooldownQueue.ContainsKey(x.Point.PointId))
+            .ToList();
+
         // Log để debug
-        Debug.WriteLine($"[MapPage] Found {nearbyPoints.Count} points within {_currentRadius}m");
-        foreach (var item in nearbyPoints)
+        Debug.WriteLine($"[MapPage] Found {allNearbyPoints.Count} total points, {activePoints.Count} active points within {_currentRadius}m");
+
+        // 3. Quyết định chọn POI
+        var nearest = activePoints
+            .OrderBy(x => x.Distance)                   // Ưu tiên 1: Khoảng cách
+            .ThenBy(x => x.Point.PointId)               // Ưu tiên 2: PointId nhỏ nhất
+            .FirstOrDefault();
+
+        // Nếu TẤT CẢ các điểm đều đang trong hàng đợi (cooldown) nhưng vẫn có POI quanh đây
+        // => Bắt đầu vòng lặp lại bằng cách chọn POI có thời gian vào hàng đợi SỚM NHẤT (cổ nhất / sắp hết hạn nhất)
+        if (nearest == null && allNearbyPoints.Any())
         {
-            Debug.WriteLine($"[MapPage] - {item.Point.Name}: Rating={item.Point.Rating}, Distance={item.Distance}m");
+            nearest = allNearbyPoints
+                .OrderBy(x => _cooldownQueue[x.Point.PointId]) // Lấy POI có thời gian hết hạn nhỏ nhất
+                .FirstOrDefault();
+
+            Debug.WriteLine($"[MapPage] All points in cooldown. Looping back to oldest POI: {nearest?.Point.Name}");
         }
 
-        // Sắp xếp: Rating cao nhất trước, sau đó đến khoảng cách gần nhất
-        var nearest = nearbyPoints
-            .OrderByDescending(x => x.Point.Rating ?? 0)  // Rating cao nhất
-            .ThenBy(x => x.Distance)                      // Gần nhất
-            .FirstOrDefault();
+        // FIX: Define nearbyPoints as allNearbyPoints.Select(x => x.Point).ToList()
+        var nearbyPoints = allNearbyPoints.Select(x => x.Point).ToList();
 
         if (nearest != null)
         {
@@ -576,7 +604,14 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
         {
             var translatedName = _currentSelectedPoi.Name;
             var translatedDescription = _currentSelectedPoi.Description ?? "";
+            
+            // Đưa POI vào hàng đợi cooldown 2 phút
+            _cooldownQueue[_currentSelectedPoi.PointId] = DateTime.Now.AddMinutes(2);
+            
             await TextToSpeech.Default.SpeakAsync($"{translatedName}. {translatedDescription}");
+            
+            // Cập nhật lại UI để nhảy sang POI tiếp theo ngay lập tức
+            CheckNearbyPoints();
         }
     }
 
