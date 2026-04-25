@@ -131,6 +131,22 @@
                                VerticalOptions="Start"/>
                     </HorizontalStackLayout>
 
+                    <!-- Phone -->
+                    <HorizontalStackLayout x:Name="PhoneRow" Spacing="8" IsVisible="False">
+                        <Label Text="📞"
+                               FontSize="16"
+                               VerticalOptions="Center"/>
+                        <Label x:Name="PhoneLabel"
+                               FontSize="13"
+                               TextColor="#4FC3F7"
+                               VerticalOptions="Center"
+                               TextDecorations="Underline">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPhoneCallTapped"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </HorizontalStackLayout>
+
                     <!-- Description -->
                     <Label x:Name="DescriptionLabel"
                            FontSize="14"

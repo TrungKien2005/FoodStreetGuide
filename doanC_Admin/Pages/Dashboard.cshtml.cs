@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -209,19 +209,43 @@ namespace doanC_Admin.Pages
             }
 
             // ============================================
-            // 4. HEATMAP VỊ TRÍ NGƯỜI DÙNG
+            // 4. HEATMAP VỊ TRÍ NGƯỜI DÙNG (dữ liệu thực tế)
             // ============================================
+            var allPoints = new List<(double lat, double lng)>();
+
+            // Nguồn 1: QR Scan logs có toạ độ thực (người dùng quét tại vị trí cụ thể)
             var qrLocations = await _context.QRScanLogs
                 .Where(q => q.Latitude.HasValue && q.Longitude.HasValue)
                 .Select(q => new { q.Latitude, q.Longitude })
                 .ToListAsync();
-
-            var allPoints = new List<(double lat, double lng)>();
             foreach (var q in qrLocations)
             {
                 if (q.Latitude.HasValue && q.Longitude.HasValue)
                     allPoints.Add((q.Latitude.Value, q.Longitude.Value));
             }
+
+            // Nguồn 2: GeoFence logs - lấy toạ độ của LocationPoint liên quan
+            // (trường hợp QR không có GPS, dùng vị trí POI được thăm)
+            var geoFencePoints = await _context.GeoFenceLogs
+                .Where(g => g.EnterTime >= DateTime.Now.AddDays(-7))
+                .Join(_context.LocationPoints,
+                    g => g.PointId,
+                    l => l.PointId,
+                    (g, l) => new { l.Latitude, l.Longitude })
+                .ToListAsync();
+            foreach (var p in geoFencePoints)
+                allPoints.Add((p.Latitude, p.Longitude));
+
+            // Nguồn 3: TTS Logs - vị trí POI được nghe (7 ngày qua)
+            var ttsPoints = await _context.TTSLogs
+                .Where(t => t.PlayedAt >= DateTime.Now.AddDays(-7))
+                .Join(_context.LocationPoints,
+                    t => t.PointId,
+                    l => l.PointId,
+                    (t, l) => new { l.Latitude, l.Longitude })
+                .ToListAsync();
+            foreach (var p in ttsPoints)
+                allPoints.Add((p.Latitude, p.Longitude));
 
             var heatmapDict = new Dictionary<string, int>();
             foreach (var point in allPoints)
@@ -235,8 +259,8 @@ namespace doanC_Admin.Pages
 
             HeatmapPoints = heatmapDict.Select(kvp => new HeatmapPoint
             {
-                lat = double.Parse(kvp.Key.Split(',')[0]),
-                lng = double.Parse(kvp.Key.Split(',')[1]),
+                lat = double.Parse(kvp.Key.Split(',')[0], System.Globalization.CultureInfo.InvariantCulture),
+                lng = double.Parse(kvp.Key.Split(',')[1], System.Globalization.CultureInfo.InvariantCulture),
                 intensity = kvp.Value
             }).ToList();
             HeatmapPointsCount = allPoints.Count;

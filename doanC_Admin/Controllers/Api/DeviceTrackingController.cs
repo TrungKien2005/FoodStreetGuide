@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using doanC_Admin.Models;
@@ -222,6 +222,13 @@ namespace doanC_Admin.Controllers.Api
                 var todayListens = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= today);
                 var listensLastHour = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= DateTime.Now.AddHours(-1));
 
+                // ✅ Thống kê thời gian nghe trung bình
+                var listenTimes = await _context.TTSLogs
+                    .Where(t => t.DurationSeconds.HasValue && t.DurationSeconds > 0)
+                    .Select(t => (double)t.DurationSeconds.Value)
+                    .ToListAsync();
+                var avgListenSeconds = listenTimes.Any() ? listenTimes.Average() : 0;
+
                 var stats = new
                 {
                     activeDevices = activeDevices,
@@ -232,6 +239,7 @@ namespace doanC_Admin.Controllers.Api
                     totalListens = totalListens,
                     todayListens = todayListens,
                     listensLastHour = listensLastHour,
+                    avgListenSeconds = Math.Round(avgListenSeconds, 1),
                     updatedAt = DateTime.Now
                 };
 

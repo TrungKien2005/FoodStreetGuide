@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using doanC_.Config;
 using doanC_.Helpers;
 using doanC_.Models;
@@ -34,6 +34,7 @@ public partial class PoiDetailPage : ContentPage
     private string _originalCategory = "";
     private string _originalOpeningHours = "";
     private string _originalPriceRange = "";
+    private string _originalPhone = "";
     private string _imageBaseUrl;
     private bool _isTranslating = false;
     private DeviceTrackingService? _deviceTrackingService;
@@ -385,6 +386,7 @@ _originalPriceRange
                 _originalCategory = _currentPoi.Category ?? "Địa điểm";
                 _originalOpeningHours = _currentPoi.OpeningHours ?? string.Empty;
                 _originalPriceRange = _currentPoi.PriceRange ?? string.Empty;
+                _originalPhone = _currentPoi.Phone ?? string.Empty;
 
                 Title = _originalName;
 
@@ -431,6 +433,20 @@ _originalPriceRange
                 {
                     PriceLabel.Text = GetPriceRangeDisplay(_originalPriceRange);
                     PriceLabel.IsVisible = true;
+                }
+
+                // ✅ Hiển thị số điện thoại nếu có
+                if (PhoneRow != null && PhoneLabel != null)
+                {
+                    if (!string.IsNullOrEmpty(_originalPhone))
+                    {
+                        PhoneLabel.Text = _originalPhone;
+                        PhoneRow.IsVisible = true;
+                    }
+                    else
+                    {
+                        PhoneRow.IsVisible = false;
+                    }
                 }
             });
         }
@@ -563,6 +579,33 @@ _originalPriceRange
         var status = _currentLanguage == "vi" ? "Địa điểm đang mở cửa phục vụ" : "The place is open for service";
         await DisplayAlert("Thông tin", status, "OK");
     }
+
+    private async void OnPhoneCallTapped(object sender, EventArgs e)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_originalPhone))
+                return;
+
+            var phoneNumber = _originalPhone.Replace(" ", "").Replace("-", "").Replace(".", "");
+            var phoneUri = new Uri($"tel:{phoneNumber}");
+
+            if (await Launcher.Default.CanOpenAsync(phoneUri))
+            {
+                await Launcher.Default.OpenAsync(phoneUri);
+            }
+            else
+            {
+                await DisplayAlert("Gọi điện", $"Số điện thoại: {_originalPhone}", "Đóng");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PoiDetailPage] Phone call error: {ex.Message}");
+            await DisplayAlert("Số điện thoại", _originalPhone, "Đóng");
+        }
+    }
+
 
     private void OnPlayAudioClicked(object sender, EventArgs e)
     {

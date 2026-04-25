@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using doanC_Admin.Models;
@@ -97,20 +97,25 @@ namespace doanC_Admin.Pages.LocationPoints
 
         private void LoadCategories()
         {
+            // ✅ Đầy đủ danh mục - đồng bộ với AppResources.cs
             Categories = new List<SelectListItem>
             {
-                new SelectListItem { Value = "Ăn vặt", Text = "🍢 Ăn vặt" },
-                new SelectListItem { Value = "Đồ uống", Text = "☕ Đồ uống" },
-                new SelectListItem { Value = "Đồ nướng", Text = "🔥 Đồ nướng" },
-                new SelectListItem { Value = "Hải sản", Text = "🦐 Hải sản" },
+                new SelectListItem { Value = "Ăn vặt",        Text = "🍢 Ăn vặt" },
+                new SelectListItem { Value = "Đồ uống",       Text = "☕ Đồ uống" },
+                new SelectListItem { Value = "Đồ nướng",      Text = "🔥 Đồ nướng" },
+                new SelectListItem { Value = "Hải sản",       Text = "🦐 Hải sản" },
                 new SelectListItem { Value = "Chợ - Ẩm thực", Text = "🛒 Chợ - Ẩm thực" },
-                new SelectListItem { Value = "Đi bộ", Text = "🚶 Đi bộ" },
-                new SelectListItem { Value = "Di tích", Text = "🏛️ Di tích" },
-                new SelectListItem { Value = "Thiên nhiên", Text = "🌿 Thiên nhiên" },
-                new SelectListItem { Value = "Điểm cao", Text = "🗼 Điểm cao" },
-                new SelectListItem { Value = "Nhà hàng", Text = "🍽️ Nhà hàng" },
-                new SelectListItem { Value = "Quán ăn", Text = "🍜 Quán ăn" }
+                new SelectListItem { Value = "Đi bộ",         Text = "🚶 Đi bộ" },
+                new SelectListItem { Value = "Di tích",       Text = "🏛️ Di tích" },
+                new SelectListItem { Value = "Thiên nhiên",   Text = "🌿 Thiên nhiên" },
+                new SelectListItem { Value = "Điểm cao",      Text = "🗼 Điểm cao" },
+                new SelectListItem { Value = "Nhà hàng",      Text = "🍽️ Nhà hàng" },
+                new SelectListItem { Value = "Quán ăn",       Text = "🍜 Quán ăn" },
+                new SelectListItem { Value = "Cafe",          Text = "☕ Cafe" },
+                new SelectListItem { Value = "Bar - Pub",     Text = "🍺 Bar - Pub" },
+                new SelectListItem { Value = "Ẩm thực",       Text = "🍱 Ẩm thực" }
             };
         }
+
     }
 }

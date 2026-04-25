@@ -230,7 +230,7 @@
                 </div>
                 <div class="stat-value" id="todayScans">@Model.TodayScans.ToString("N0")</div>
                 <div class="stat-label">Lượt quét hôm nay</div>
-                <small class="text-muted">1 giờ qua: <span id="scansLastHour">@Model.ScansLastHour</span></small>
+                <small class="text-muted">Hôm nay: <span id="scansLastHour">@Model.ScansLastHour</span></small>
             </div>
         </div>
         <div class="col-xl-2 col-md-4">
@@ -688,7 +688,7 @@
         let avgTimeChart = null;
         
         try {
-            new Chart(document.getElementById('movementChart'), {
+            window._movementChart = new Chart(document.getElementById('movementChart'), {
                 type: 'line',
                 data: {
                     labels: @Html.Raw(Json.Serialize(Model.MovementLabels)),
@@ -1256,7 +1256,7 @@
                 const stats = await response.json();
                 console.log("📊 Stats received:", stats);
 
-                // Cập nhật các element
+                // Cập nhật các element chính
                 const elements = {
                     'totalDevices': stats.totalDevices || 0,
                     'totalScans': stats.totalScans || 0,
@@ -1274,6 +1274,20 @@
                         } else {
                             el.innerText = value;
                         }
+                    }
+                }
+
+                // ✅ Cập nhật nhãn con "Hôm nay" của thẻ QR Scans (element id=scansLastHour)
+                const scansLastHourEl = document.getElementById('scansLastHour');
+                if (scansLastHourEl) {
+                    scansLastHourEl.innerText = stats.todayScans || 0;
+                }
+
+                // Cập nhật Avg Listen Time nếu có
+                if (stats.avgListenSeconds && stats.avgListenSeconds > 0) {
+                    const avgListenTimeEl = document.getElementById('avgListenTime');
+                    if (avgListenTimeEl) {
+                        avgListenTimeEl.innerHTML = `${Math.round(stats.avgListenSeconds)}<small>s</small>`;
                     }
                 }
 
@@ -1411,31 +1425,43 @@
         });
 
 
-        // Hàm reload dữ liệu cho 2 biểu đồ từ server
+        // Hàm reload dữ liệu cho các biểu đồ từ server
         async function reloadChartData() {
             try {
-                // Gọi API lấy dữ liệu mới nhất cho 2 biểu đồ
-                const response = await fetch('/api/RealTime/top-locations?metric=listens&take=5');
-                const topResult = await response.json();
+                // 1. Reload Top Listened Chart
+                const topResponse = await fetch('/api/RealTime/top-locations?metric=listens&take=5');
+                const topResult = await topResponse.json();
                     
-                if (topResult.success && topResult.data) {
-                    // Cập nhật Top Listened Chart
+                if (topResult.success && topResult.data && topListenedChart) {
                     topListenedChart.data.labels = topResult.data.map(item => item.locationName);
                     topListenedChart.data.datasets[0].data = topResult.data.map(item => item.count);
                     topListenedChart.update();
                     console.log('📊 Top Listened Chart updated:', topResult.data);
                 }
 
+                // 2. Reload Avg Time Chart
                 const avgResponse = await fetch('/api/RealTime/top-locations?metric=avgtime&take=5');
                 const avgResult = await avgResponse.json();
 
-                if (avgResult.success && avgResult.data) {
-                    // Cập nhật Avg Time Chart
+                if (avgResult.success && avgResult.data && avgTimeChart) {
                     avgTimeChart.data.labels = avgResult.data.map(item => item.locationName);
                     avgTimeChart.data.datasets[0].data = avgResult.data.map(item => item.avgTime);
                     avgTimeChart.update();
                     console.log('⏱️ Avg Time Chart updated:', avgResult.data);
                 }
+
+                // 3. ✅ Reload Movement Chart (7 ngày qua) - lấy từ API
+                const movResponse = await fetch('/api/RealTime/movement-chart');
+                if (movResponse.ok) {
+                    const movResult = await movResponse.json();
+                    if (movResult.success && movResult.data && window._movementChart) {
+                        window._movementChart.data.labels = movResult.data.map(d => d.date);
+                        window._movementChart.data.datasets[0].data = movResult.data.map(d => d.count);
+                        window._movementChart.update();
+                        console.log('📈 Movement Chart updated:', movResult.data);
+                    }
+                }
+
             } catch (error) {
                 console.error('Error reloading chart data:', error);
             }

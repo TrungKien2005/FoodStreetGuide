@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -6,11 +6,9 @@ using doanC_Admin.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using doanC_Admin.Helpers;
-using Microsoft.AspNetCore.Authorization;  // âœ… THĂM DĂ’NG NĂ€Y
 
 namespace doanC_Admin.Pages.Owner
 {
@@ -59,7 +57,7 @@ namespace doanC_Admin.Pages.Owner
             return Page();
         }
 
-        [ValidateAntiForgeryToken]  // âœ… THĂM DĂ’NG NĂ€Y
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> OnPostAsync()
         {
             var adminId = HttpContext.Session.GetString("AdminId");
@@ -72,24 +70,24 @@ namespace doanC_Admin.Pages.Owner
             if (storeOwner == null)
                 return RedirectToPage("/Error");
 
-            // âœ… THĂM VALIDATION
+            // Validation
             if (string.IsNullOrWhiteSpace(LocationPoint.Name))
             {
-                ErrorMessage = "TĂªn Ä‘á»‹a Ä‘iá»ƒm khĂ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng";
+                ErrorMessage = "Tên địa điểm không được để trống";
                 LoadCategories();
                 return Page();
             }
 
             if (LocationPoint.Latitude == 0 || LocationPoint.Longitude == 0)
             {
-                ErrorMessage = "Vui lĂ²ng nháº­p tá»a Ä‘á»™ há»£p lá»‡ (kinh Ä‘á»™, vÄ© Ä‘á»™)";
+                ErrorMessage = "Vui lòng nhập tọa độ hợp lệ (kinh độ, vĩ độ)";
                 LoadCategories();
                 return Page();
             }
 
             if (string.IsNullOrWhiteSpace(LocationPoint.Category))
             {
-                ErrorMessage = "Vui lĂ²ng chá»n danh má»¥c";
+                ErrorMessage = "Vui lòng chọn danh mục";
                 LoadCategories();
                 return Page();
             }
@@ -100,7 +98,7 @@ namespace doanC_Admin.Pages.Owner
                 return RedirectToPage("/Owner/MyLocations");
             }
 
-            // Cáº­p nháº­t thĂ´ng tin
+            // Cập nhật thông tin
             existingLocation.Name = LocationPoint.Name;
             existingLocation.Category = LocationPoint.Category;
             existingLocation.Description = LocationPoint.Description;
@@ -109,15 +107,15 @@ namespace doanC_Admin.Pages.Owner
             existingLocation.Longitude = LocationPoint.Longitude;
             existingLocation.OpeningHours = LocationPoint.OpeningHours;
             existingLocation.PriceRange = LocationPoint.PriceRange;
+            existingLocation.Phone = LocationPoint.Phone;  // ✅ Cập nhật Phone
 
-            // QUAN TRá»ŒNG: Äáº·t láº¡i IsApproved = false Ä‘á»ƒ Admin duyá»‡t láº¡i
+            // ✅ QUAN TRỌNG: Đặt lại IsApproved = false để Admin duyệt lại
             existingLocation.IsApproved = false;
             existingLocation.UpdatedAt = DateTime.Now;
 
-            // âœ… Sá»¬A: Xá»­ lĂ½ áº£nh - XĂ³a áº£nh cÅ© náº¿u cĂ³ áº£nh má»›i
+            // Xử lý ảnh - Xóa ảnh cũ nếu có ảnh mới
             if (ImageFile != null && ImageFile.Length > 0)
             {
-                // XĂ³a áº£nh cÅ©
                 if (!string.IsNullOrEmpty(existingLocation.Image))
                 {
                     var oldImagePath = Path.Combine(GetImagesPath(), existingLocation.Image);
@@ -127,7 +125,6 @@ namespace doanC_Admin.Pages.Owner
                     }
                 }
 
-                // LÆ°u áº£nh má»›i
                 var fileName = $"{Guid.NewGuid()}_{ImageFile.FileName}";
                 var filePath = Path.Combine(GetImagesPath(), fileName);
 
@@ -140,7 +137,7 @@ namespace doanC_Admin.Pages.Owner
 
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Cáº­p nháº­t thĂ nh cĂ´ng! Äá»‹a Ä‘iá»ƒm Ä‘Ă£ Ä‘Æ°á»£c gá»­i láº¡i cho Admin chá» phĂª duyá»‡t.";
+            TempData["SuccessMessage"] = "Cập nhật thành công! Địa điểm đã được gửi lại cho Admin chờ phê duyệt.";
             return RedirectToPage("/Owner/MyLocations");
         }
 
@@ -154,17 +151,24 @@ namespace doanC_Admin.Pages.Owner
 
         private void LoadCategories()
         {
+            // ✅ Đồng bộ với AppResources.cs (dùng UTF-8 trực tiếp)
             Categories = new List<SelectListItem>
             {
-                new SelectListItem { Value = "Ä‚n váº·t", Text = "đŸ¢ Ä‚n váº·t" },
-                new SelectListItem { Value = "Äá»“ uá»‘ng", Text = "â˜• Äá»“ uá»‘ng" },
-                new SelectListItem { Value = "Äá»“ nÆ°á»›ng", Text = "đŸ”¥ Äá»“ nÆ°á»›ng" },
-                new SelectListItem { Value = "Háº£i sáº£n", Text = "đŸ¦ Háº£i sáº£n" },
-                new SelectListItem { Value = "NhĂ  hĂ ng", Text = "đŸ½ï¸ NhĂ  hĂ ng" },
-                new SelectListItem { Value = "QuĂ¡n Äƒn", Text = "đŸœ QuĂ¡n Äƒn" },
-                new SelectListItem { Value = "Cafe", Text = "â˜• Cafe" }
+                new SelectListItem { Value = "Ăn vặt",        Text = "🍢 Ăn vặt" },
+                new SelectListItem { Value = "Đồ uống",       Text = "☕ Đồ uống" },
+                new SelectListItem { Value = "Đồ nướng",      Text = "🔥 Đồ nướng" },
+                new SelectListItem { Value = "Hải sản",       Text = "🦐 Hải sản" },
+                new SelectListItem { Value = "Chợ - Ẩm thực", Text = "🛒 Chợ - Ẩm thực" },
+                new SelectListItem { Value = "Đi bộ",         Text = "🚶 Đi bộ" },
+                new SelectListItem { Value = "Di tích",       Text = "🏛️ Di tích" },
+                new SelectListItem { Value = "Thiên nhiên",   Text = "🌿 Thiên nhiên" },
+                new SelectListItem { Value = "Điểm cao",      Text = "🗼 Điểm cao" },
+                new SelectListItem { Value = "Nhà hàng",      Text = "🍽️ Nhà hàng" },
+                new SelectListItem { Value = "Quán ăn",       Text = "🍜 Quán ăn" },
+                new SelectListItem { Value = "Cafe",          Text = "☕ Cafe" },
+                new SelectListItem { Value = "Bar - Pub",     Text = "🍺 Bar - Pub" },
+                new SelectListItem { Value = "Ẩm thực",       Text = "🍱 Ẩm thực" }
             };
         }
     }
 }
-

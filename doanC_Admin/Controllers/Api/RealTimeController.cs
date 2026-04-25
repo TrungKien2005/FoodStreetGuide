@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using doanC_Admin.Hubs;
@@ -525,6 +525,38 @@ namespace doanC_Admin.Controllers.Api
             }
             catch (Exception ex)
             {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Lấy dữ liệu di chuyển 7 ngày qua cho biểu đồ (real-time refresh)
+        /// </summary>
+        [HttpGet("movement-chart")]
+        public async Task<IActionResult> GetMovementChart()
+        {
+            try
+            {
+                var labels = new List<string>();
+                var counts = new List<int>();
+
+                for (int i = 6; i >= 0; i--)
+                {
+                    var date = DateTime.Now.AddDays(-i).Date;
+                    labels.Add(date.ToString("dd/MM"));
+                    var count = await _context.GeoFenceLogs
+                        .Where(g => g.EnterTime.HasValue && g.EnterTime.Value.Date == date)
+                        .CountAsync();
+                    counts.Add(count);
+                }
+
+                var data = labels.Select((label, idx) => new { date = label, count = counts[idx] }).ToList();
+
+                return Ok(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error getting movement chart: {ex.Message}");
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
