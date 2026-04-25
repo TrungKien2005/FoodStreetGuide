@@ -13,6 +13,7 @@ using Microsoft.Maui.Media;
 using Map = Microsoft.Maui.Controls.Maps.Map;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using doanC_.Services.Api;
 
 namespace doanC_.Views;
 
@@ -418,8 +419,20 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
             // Đưa POI vào hàng đợi cooldown 2 phút
             _cooldownQueue[point.PointId] = DateTime.Now.AddMinutes(2);
             
+            DateTime playStartTime = DateTime.Now;
+
             await TextToSpeech.Default.SpeakAsync(textToSpeak);
             
+            var duration = (int)(DateTime.Now - playStartTime).TotalSeconds;
+            string deviceId = Microsoft.Maui.Devices.DeviceInfo.Current.Name ?? "Unknown";
+            int languageId = GetLanguageId(_currentLanguage);
+
+            var apiService = ServiceHelper.GetService<ApiService>();
+            if (apiService != null)
+            {
+                await apiService.RecordTTSListenAsync(point.PointId, languageId, duration, deviceId);
+            }
+
             // Cập nhật lại UI để chuyển sang POI tiếp theo
             CheckNearbyPoints();
         }
@@ -608,11 +621,36 @@ public partial class MapPage : ContentPage, INotifyPropertyChanged
             // Đưa POI vào hàng đợi cooldown 2 phút
             _cooldownQueue[_currentSelectedPoi.PointId] = DateTime.Now.AddMinutes(2);
             
+            DateTime playStartTime = DateTime.Now;
+
             await TextToSpeech.Default.SpeakAsync($"{translatedName}. {translatedDescription}");
             
+            var duration = (int)(DateTime.Now - playStartTime).TotalSeconds;
+            string deviceId = Microsoft.Maui.Devices.DeviceInfo.Current.Name ?? "Unknown";
+            int languageId = GetLanguageId(_currentLanguage);
+
+            var apiService = ServiceHelper.GetService<ApiService>();
+            if (apiService != null)
+            {
+                await apiService.RecordTTSListenAsync(_currentSelectedPoi.PointId, languageId, duration, deviceId);
+            }
+
             // Cập nhật lại UI để nhảy sang POI tiếp theo ngay lập tức
             CheckNearbyPoints();
         }
+    }
+
+    private int GetLanguageId(string languageCode)
+    {
+        return languageCode switch
+        {
+            "vi" => 1,
+            "en" => 2,
+            "zh" => 3,
+            "ja" => 4,
+            "ko" => 5,
+            _ => 1
+        };
     }
 
     protected override async void OnAppearing()

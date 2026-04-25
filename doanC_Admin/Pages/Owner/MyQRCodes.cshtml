@@ -1,0 +1,150 @@
+@page
+@model doanC_Admin.Pages.Owner.MyQRCodesModel
+@{
+    Layout = "_OwnerLayout";
+    ViewData["Title"] = "Quản lý QR Code";
+}
+
+<style>
+    .chart-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: none;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+    .chart-card .card-header {
+        background: white;
+        border-bottom: 1px solid #ecf0f1;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    .chart-card .card-body {
+        padding: 1.25rem;
+    }
+    .btn-gradient {
+        background: linear-gradient(135deg, #FF5722, #E64A19);
+        border: none;
+        color: white;
+        padding: 0.4rem 1rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        transition: all 0.3s;
+    }
+    .btn-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255,87,34,0.3);
+        color: white;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-qrcode me-2 text-primary"></i>Quản lý QR Code</h4>
+            <p class="text-muted mb-0">Tạo mã QR cho các địa điểm đã được duyệt để khách hàng quét và nghe thuyết minh</p>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="card-header">
+            <i class="fas fa-qrcode"></i> Tạo mã QR cho địa điểm
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Chỉ có thể chọn những địa điểm <strong>đã được duyệt</strong> bởi Admin.
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Chọn địa điểm:</label>
+                    <select id="qrLocationSelect" class="form-select mb-4">
+                        <option value="">-- Chọn địa điểm --</option>
+                        @if (Model.ApprovedLocations != null && Model.ApprovedLocations.Any())
+                        {
+                            @foreach (var loc in Model.ApprovedLocations)
+                            {
+                                <option value="@loc.PointId">@loc.Name</option>
+                            }
+                        }
+                    </select>
+                    
+                    <button class="btn btn-gradient w-100 py-2" id="generateQRBtn">
+                        <i class="fas fa-magic me-2"></i>Tạo QR Code ngay
+                    </button>
+                </div>
+                
+                <div class="col-md-7">
+                    <div class="text-center p-5 border rounded bg-light d-flex flex-column justify-content-center align-items-center" id="qrPreview" style="min-height: 250px;">
+                        <i class="fas fa-qrcode fa-5x text-muted mb-3 opacity-50"></i>
+                        <p class="text-muted mb-0">Mã QR sẽ hiển thị ở đây sau khi tạo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('generateQRBtn')?.addEventListener('click', async function() {
+            const locationId = document.getElementById('qrLocationSelect').value;
+            if (!locationId) {
+                alert('Vui lòng chọn địa điểm từ danh sách!');
+                return;
+            }
+
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tạo mã...';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/api/QrApi/GenerateQR', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pointId: parseInt(locationId),
+                        name: `QR_${locationId}_${Date.now()}`,
+                        size: 300 // Mã QR rõ hơn
+                    })
+                });
+                
+                if(!response.ok) throw new Error("API Network error");
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('qrPreview').innerHTML = `
+                        <div class="text-center">
+                            <h5 class="mb-3 text-success"><i class="fas fa-check-circle me-1"></i>Tạo mã thành công</h5>
+                            <img src="${result.qrImageData}" style="max-width:250px; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" class="mb-3 border p-2 bg-white"/>
+                            <div>
+                                <button class="btn btn-success px-4" onclick="downloadQR('${result.qrImageData}', '${result.qrName}')">
+                                    <i class="fas fa-download me-2"></i>Tải hình ảnh QR
+                                </button>
+                            </div>
+                        </div>`;
+                } else {
+                    alert('❌ Có lỗi xảy ra: ' + result.message);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('❌ Lỗi kết nối hoặc xử lý API tạo QR Code');
+            } finally {
+                this.innerHTML = '<i class="fas fa-magic me-2"></i>Tạo QR Code ngay';
+                this.disabled = false;
+            }
+        });
+
+        function downloadQR(imageData, fileName) {
+            const link = document.createElement('a');
+            link.download = `${fileName}.png`;
+            link.href = imageData;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+}

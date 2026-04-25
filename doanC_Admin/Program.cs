@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using doanC_Admin.Filters;
 using doanC_Admin.Hubs;
 using doanC_Admin.Models;
@@ -122,6 +122,26 @@ using (var scope = app.Services.CreateScope())
         // Tạo bảng bằng Entity Framework (nếu chưa có)
         await dbContext.Database.EnsureCreatedAsync();
         Console.WriteLine("✅ Database schema ensured!");
+
+        // ✅ TỰ ĐỘNG THÊM CỘT PHONE NẾU CHƯA CÓ (TRÁNH LỖI MẤT DỮ LIỆU CŨ)
+        try
+        {
+            var sqlCheck = @"
+                IF NOT EXISTS (
+                    SELECT * FROM sys.columns 
+                    WHERE object_id = OBJECT_ID(N'[dbo].[LocationPoints]') 
+                    AND name = 'Phone'
+                )
+                BEGIN
+                    ALTER TABLE [dbo].[LocationPoints] ADD [Phone] NVARCHAR(50) NULL;
+                END";
+            await dbContext.Database.ExecuteSqlRawAsync(sqlCheck);
+            Console.WriteLine("✅ Phone column ensured in LocationPoints!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Lỗi thêm cột Phone: {ex.Message}");
+        }
 
         // Kiểm tra và thêm dữ liệu
         var adminCount = dbContext.AdminUsers.Count();

@@ -1,4 +1,194 @@
-﻿@page
+@page
 @model doanC_Admin.Pages.Owner.EditLocationModel
 @{
+    ViewData["Title"] = "Chỉnh sửa địa điểm";
+    Layout = "_OwnerLayout";
+}
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    #mapPicker {
+        height: 350px;
+        border-radius: 12px;
+        border: 1px solid #ced4da;
+        margin-bottom: 15px;
+        z-index: 1;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-1">
+            <i class="fas fa-edit me-2 text-warning"></i>Chỉnh sửa địa điểm
+        </h4>
+        <a href="/Owner/MyLocations" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Quay lại
+        </a>
+    </div>
+
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Lưu ý:</strong> Mọi thay đổi của bạn sẽ làm cho địa điểm này chuyển về trạng thái <strong>"Chờ duyệt"</strong>. Admin sẽ cần kiểm tra lại trước khi hiển thị trên ứng dụng.
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" asp-for="LocationPoint.PointId" />
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.Name" class="form-label fw-bold">Tên địa điểm <span class="text-danger">*</span></label>
+                        <input asp-for="LocationPoint.Name" class="form-control" required />
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.Category" class="form-label fw-bold">Danh mục</label>
+                        <select asp-for="LocationPoint.Category" class="form-select" asp-items="Model.Categories">
+                            <option value="">-- Chọn danh mục --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.Phone" class="form-label fw-bold">Số điện thoại</label>
+                        <input asp-for="LocationPoint.Phone" class="form-control" placeholder="Nhập số điện thoại liên hệ" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Cập nhật hình ảnh mới (Không bắt buộc)</label>
+                        <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+                        @if (!string.IsNullOrEmpty(Model.LocationPoint.Image))
+                        {
+                            <small class="text-muted d-block mt-2">Ảnh hiện tại: @Model.LocationPoint.Image</small>
+                        }
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label asp-for="LocationPoint.Address" class="form-label fw-bold">Địa chỉ</label>
+                        <div class="input-group">
+                            <input asp-for="LocationPoint.Address" class="form-control" id="addressInput" />
+                            <button type="button" id="geocodeBtn" class="btn btn-secondary">
+                                <i class="fas fa-search-location"></i> Tìm tọa độ
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.OpeningHours" class="form-label fw-bold">Giờ mở cửa</label>
+                        <input asp-for="LocationPoint.OpeningHours" class="form-control" placeholder="VD: 08:00 - 22:00" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.PriceRange" class="form-label fw-bold">Khoảng giá</label>
+                        <input asp-for="LocationPoint.PriceRange" class="form-control" placeholder="VD: 50.000 - 200.000 VNĐ" />
+                    </div>
+                    
+                    <div class="col-12 mb-3">
+                        <label asp-for="LocationPoint.Description" class="form-label fw-bold">Mô tả</label>
+                        <textarea asp-for="LocationPoint.Description" class="form-control" rows="4"></textarea>
+                    </div>
+
+                    <!-- BẢN ĐỒ CHỌN TỌA ĐỘ -->
+                    <div class="col-12 mt-2 mb-3">
+                        <label class="form-label fw-bold"><i class="fas fa-map-marked-alt text-primary me-2"></i>Chọn vị trí trên bản đồ</label>
+                        <div id="mapPicker"></div>
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Nhấp vào bản đồ hoặc kéo biểu tượng để cập nhật Vĩ độ / Kinh độ.</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.Latitude" class="form-label fw-bold">Vĩ độ (Latitude) <span class="text-danger">*</span></label>
+                        <input asp-for="LocationPoint.Latitude" class="form-control" id="latInput" step="any" required />
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LocationPoint.Longitude" class="form-label fw-bold">Kinh độ (Longitude) <span class="text-danger">*</span></label>
+                        <input asp-for="LocationPoint.Longitude" class="form-control" id="lngInput" step="any" required />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+                <div class="d-flex justify-content-end gap-3">
+                    <a href="/Owner/MyLocations" class="btn btn-light px-4">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold">
+                        <i class="fas fa-save me-2"></i>Lưu thay đổi & Gửi duyệt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let latInput = document.getElementById('latInput');
+            let lngInput = document.getElementById('lngInput');
+
+            // Tọa độ hiện tại của POI (hoặc default)
+            let startLat = parseFloat(latInput.value) || 10.7769;
+            let startLng = parseFloat(lngInput.value) || 106.7009;
+
+            let map = L.map('mapPicker').setView([startLat, startLng], 16);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            let marker = L.marker([startLat, startLng], { draggable: true }).addTo(map);
+
+            marker.on('dragend', function (e) {
+                let position = marker.getLatLng();
+                updateInputs(position.lat, position.lng);
+            });
+
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                updateInputs(e.latlng.lat, e.latlng.lng);
+            });
+
+            function updateInputs(lat, lng) {
+                latInput.value = lat.toFixed(6);
+                lngInput.value = lng.toFixed(6);
+            }
+
+            document.getElementById('geocodeBtn')?.addEventListener('click', async function() {
+                const address = document.getElementById('addressInput').value;
+                if (!address) {
+                    alert('Vui lòng nhập địa chỉ để tìm!');
+                    return;
+                }
+
+                const btn = this;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tìm...';
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`);
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        
+                        updateInputs(lat, lon);
+                        marker.setLatLng([lat, lon]);
+                        map.setView([lat, lon], 17);
+                        alert('✅ Đã cập nhật tọa độ thành công!');
+                    } else {
+                        alert('❌ Không tìm thấy tọa độ. Vui lòng nhập địa chỉ rõ ràng hơn.');
+                    }
+                } catch (error) {
+                    alert('❌ Lỗi khi tìm tọa độ');
+                } finally {
+                    btn.innerHTML = '<i class="fas fa-search-location"></i> Tìm tọa độ';
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
 }

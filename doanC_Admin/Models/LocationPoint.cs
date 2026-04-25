@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -41,6 +41,8 @@ namespace doanC_Admin.Models
         public string? OpeningHours { get; set; }
 
         public string? PriceRange { get; set; }
+
+        public string? Phone { get; set; }
 
         // ✅ Owner & Approval fields
         public int? OwnerId { get; set; }

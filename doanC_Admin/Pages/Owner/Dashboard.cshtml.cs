@@ -7,10 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using doanC_Admin.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Pages.Owner
 {
-    [Authorize("Owner", "Manager")]
+    [doanC_Admin.Helpers.Authorize("Owner", "Manager")]
     public class DashboardModel : PageModel
     {
         private readonly FoodStreetGuideDBContext _context;
@@ -41,18 +42,18 @@ namespace doanC_Admin.Pages.Owner
 
             var role = HttpContext.Session.GetString("Role");
 
-            // ✅ SỬA: Cho phép cả Owner và Manager
+            // ? S?A: Cho phép c? Owner và Manager
             if (role != "Owner" && role != "Manager")
                 return RedirectToPage("/Dashboard");
 
             OwnerId = int.Parse(adminId);
             var admin = await _context.AdminUsers.FindAsync(OwnerId);
-            OwnerName = admin?.FullName ?? admin?.Username ?? "Chủ quán";
+            OwnerName = admin?.FullName ?? admin?.Username ?? "Ch? quán";
 
-            // ✅ Lấy StoreOwner
+            // ? L?y StoreOwner
             var storeOwner = await _context.StoreOwners.FirstOrDefaultAsync(s => s.AdminId == OwnerId);
 
-            // Nếu chưa có StoreOwner, tạo mới
+            // N?u chưa có StoreOwner, t?o m?i
             if (storeOwner == null)
             {
                 storeOwner = new StoreOwner
@@ -68,7 +69,7 @@ namespace doanC_Admin.Pages.Owner
 
             var ownerId = storeOwner.OwnerId;
 
-            // ✅ Lấy danh sách địa điểm
+            // ? L?y danh sách đ?a đi?m
             var locations = await _context.LocationPoints
                 .Where(l => l.OwnerId == ownerId)
                 .OrderByDescending(l => l.CreatedAt)
@@ -80,7 +81,7 @@ namespace doanC_Admin.Pages.Owner
 
             ApprovedLocations = locations.Where(l => l.IsApproved).ToList();
 
-            // ✅ Xóa vòng lặp trùng lặp
+            // ? Xóa v?ng l?p trùng l?p
             MyLocations.Clear();
             TotalScans = 0;
             TotalListens = 0;
@@ -104,7 +105,7 @@ namespace doanC_Admin.Pages.Owner
                 });
             }
 
-            // ✅ Lấy Audio
+            // ? L?y Audio
             var locationDict = locations.ToDictionary(l => l.PointId, l => l.Name ?? "");
 
             MyAudios = await _context.AudioFiles
@@ -115,7 +116,7 @@ namespace doanC_Admin.Pages.Owner
                     PointId = a.PointId,
                     LocationName = locationDict.ContainsKey(a.PointId) ? locationDict[a.PointId] : "",
                     FileName = a.FileName ?? "",
-                    Language = l.LanguageName ?? "Tiếng Việt",
+                    Language = l.LanguageName ?? "Ti?ng Vi?t",
                     FilePath = a.FilePath ?? "",
                     CreatedAt = a.CreatedAt
                 })
@@ -146,3 +147,6 @@ namespace doanC_Admin.Pages.Owner
         public DateTime CreatedAt { get; set; }
     }
 }
+
+
+

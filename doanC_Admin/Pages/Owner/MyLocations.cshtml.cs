@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using doanC_Admin.Models;
 using doanC_Admin.Helpers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 
 namespace doanC_Admin.Pages.Owner
 {
-    [Authorize("Owner")]
+    [doanC_Admin.Helpers.Authorize("Owner", "Manager")]
     public class MyLocationsModel : PageModel
     {
         private readonly FoodStreetGuideDBContext _context;
@@ -59,6 +61,9 @@ namespace doanC_Admin.Pages.Owner
             return Page();
         }
 
+        // âœ… Sá»¬A: Äá»•i [HttpGet] thĂ nh [HttpPost] vĂ  thĂªm ValidateAntiForgeryToken
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
             var adminId = HttpContext.Session.GetString("AdminId");
@@ -84,7 +89,6 @@ namespace doanC_Admin.Pages.Owner
         }
     }
 
-    // ✅ ĐỔI TÊN CLASS ĐỂ TRÁNH TRÙNG
     public class OwnerLocationItem
     {
         public int PointId { get; set; }
@@ -98,3 +102,4 @@ namespace doanC_Admin.Pages.Owner
         public int TodayVisitors { get; set; }
     }
 }
+

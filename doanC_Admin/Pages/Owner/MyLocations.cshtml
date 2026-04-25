@@ -125,6 +125,12 @@
         }
 </style>
 
+<!-- ✅ THÊM TOKEN CHO FETCH API -->
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery AntiForgery
+@{
+    var requestToken = AntiForgery.GetAndStoreTokens(HttpContext).RequestToken;
+}
+
 <div class="container-fluid px-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -169,12 +175,13 @@
         {
             foreach (var loc in Model.MyLocations)
             {
-                <div class="location-card" data-name="@loc.Name.ToLower()" data-status="@(loc.IsApproved ? "approved" : (!string.IsNullOrEmpty(loc.RejectionReason) ? "rejected" : "pending"))" data-category="@loc.Category">
+                <!-- ✅ SỬA data-name: đúng cú pháp và xử lý null -->
+                <div class="location-card" data-name="@(loc.Name?.ToLower() ?? "")" data-status="@(loc.IsApproved ? "approved" : (!string.IsNullOrEmpty(loc.RejectionReason) ? "rejected" : "pending"))" data-category="@loc.Category">
                     <div class="location-header">
                         <div>
                             <h5 class="mb-0">@loc.Name</h5>
                             <small class="text-muted">
-                                <i class="fas fa-tag me-1"></i>@loc.Category | 
+                                <i class="fas fa-tag me-1"></i>@loc.Category |
                                 <i class="fas fa-id-card me-1"></i>ID: @loc.PointId
                             </small>
                         </div>
@@ -241,33 +248,58 @@
     </div>
 </div>
 
+<!-- ✅ THÊM INPUT ẨN CHỨA TOKEN CHO FETCH API -->
+<input type="hidden" id="requestVerificationToken" value="@requestToken" />
+
 <script>
     function filterLocations() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const status = document.getElementById('statusFilter').value;
         const category = document.getElementById('categoryFilter').value;
-        
+
         document.querySelectorAll('.location-card').forEach(card => {
             const name = card.dataset.name;
             const cardStatus = card.dataset.status;
             const cardCategory = card.dataset.category;
-            
+
             let match = true;
             if (searchTerm && !name.includes(searchTerm)) match = false;
             if (status !== 'all' && cardStatus !== status) match = false;
             if (category !== 'all' && cardCategory !== category) match = false;
-            
+
             card.style.display = match ? 'block' : 'none';
         });
     }
-    
+
     document.getElementById('searchInput').addEventListener('input', filterLocations);
     document.getElementById('statusFilter').addEventListener('change', filterLocations);
     document.getElementById('categoryFilter').addEventListener('change', filterLocations);
-    
+
+    // ✅ SỬA HÀM confirmDelete - LẤY TOKEN TỪ INPUT ẨN
     function confirmDelete(id, name) {
         if (confirm(`Bạn có chắc chắn muốn xóa địa điểm "${name}"?\n\n⚠️ Hành động này không thể hoàn tác!`)) {
-            window.location.href = `/Owner/MyLocations?handler=Delete&id=${id}`;
+            const token = document.getElementById('requestVerificationToken')?.value || '';
+
+            fetch(`?handler=Delete&id=${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    return response.text().then(text => {
+                        alert('Có lỗi xảy ra khi xóa: ' + text);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi xóa!');
+            });
         }
     }
 </script>

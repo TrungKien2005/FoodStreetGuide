@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using doanC_Admin.Models;
 using doanC_Admin.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace doanC_Admin.Pages.Owner
 {
-    [Authorize("Owner")]
+    [doanC_Admin.Helpers.Authorize("Owner", "Manager")]
     public class StatisticsModel : PageModel
     {
         private readonly FoodStreetGuideDBContext _context;
@@ -45,10 +46,11 @@ namespace doanC_Admin.Pages.Owner
             {
                 var date = DateTime.Now.AddDays(-i).Date;
                 ScanLabels.Add(date.ToString("dd/MM"));
-                var count = await _context.QRScanLogs
+
+                var scanCount = await _context.QRScanLogs
                     .Where(s => ownerLocations.Contains(s.PointId) && s.ScanTime.Date == date)
                     .CountAsync();
-                ScanData.Add(count);
+                ScanData.Add(scanCount);
             }
 
             // 7 days listen stats
@@ -56,10 +58,11 @@ namespace doanC_Admin.Pages.Owner
             {
                 var date = DateTime.Now.AddDays(-i).Date;
                 ListenLabels.Add(date.ToString("dd/MM"));
-                var count = await _context.TTSLogs
+
+                var listenCount = await _context.TTSLogs
                     .Where(t => ownerLocations.Contains(t.PointId) && t.PlayedAt.Date == date)
                     .CountAsync();
-                ListenData.Add(count);
+                ListenData.Add(listenCount);
             }
 
             // Top locations
@@ -85,3 +88,5 @@ namespace doanC_Admin.Pages.Owner
         }
     }
 }
+
+

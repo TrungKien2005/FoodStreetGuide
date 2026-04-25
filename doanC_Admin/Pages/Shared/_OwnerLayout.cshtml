@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -216,10 +216,10 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("MyAudios") == true ? "active" : "")"
-                   asp-page="/Owner/MyAudios">
-                    <i class="fas fa-headphones"></i>
-                    <span>Quản lý Audio</span>
+                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Contains("MyQRCodes") == true ? "active" : "")"
+                   asp-page="/Owner/MyQRCodes">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Quản lý QR của mình</span>
                 </a>
             </li>
 

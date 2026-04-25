@@ -59,6 +59,9 @@ namespace doanC_.Models
         [JsonPropertyName("priceRange")]
         public string? PriceRange { get; set; }
 
+        [JsonPropertyName("phone")]
+        public string? Phone { get; set; }
+
         [JsonPropertyName("createdBy")]
         public int? CreatedBy { get; set; }
 

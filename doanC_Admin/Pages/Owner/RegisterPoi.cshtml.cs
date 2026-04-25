@@ -1,13 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using doanC_Admin.Models;
 using doanC_Admin.Helpers;
 using Microsoft.AspNetCore.Hosting;
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace doanC_Admin.Pages.Owner
 {
-    [Authorize("Owner")]
+    [doanC_Admin.Helpers.Authorize("Owner", "Manager")]
     public class RegisterPoiModel : PageModel
     {
         private readonly FoodStreetGuideDBContext _context;
@@ -53,16 +57,24 @@ namespace doanC_Admin.Pages.Owner
 
                 if (Location.Latitude == 0 || Location.Longitude == 0)
                 {
-                    ErrorMessage = "Vui lòng nhập tọa độ (kinh độ, vĩ độ)";
+                    ErrorMessage = "Vui lòng chọn vị trí trên bản đồ để tự động lấy tọa độ (kinh độ, vĩ độ)";
+                    return Page();
+                }
+
+                if (string.IsNullOrEmpty(Location.Category))
+                {
+                    ErrorMessage = "Vui lòng chọn danh mục";
                     return Page();
                 }
 
                 // Handle image upload
                 if (ImageFile != null && ImageFile.Length > 0)
                 {
-                    var uploadFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
+                    var uploadFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "locations");
                     if (!Directory.Exists(uploadFolder))
+                    {
                         Directory.CreateDirectory(uploadFolder);
+                    }
 
                     var uniqueFileName = $"{Guid.NewGuid()}_{ImageFile.FileName}";
                     var filePath = Path.Combine(uploadFolder, uniqueFileName);
@@ -87,12 +99,12 @@ namespace doanC_Admin.Pages.Owner
                 storeOwner.PendingLocations++;
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Đã gửi yêu cầu đăng ký, vui lòng chờ admin duyệt!";
+                TempData["SuccessMessage"] = "Đã gửi yêu cầu đăng ký địa điểm, vui lòng chờ Admin duyệt!";
                 return RedirectToPage("/Owner/MyLocations");
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Lỗi: {ex.Message}";
+                ErrorMessage = $"Lỗi hệ thống: {ex.Message}";
                 return Page();
             }
         }
