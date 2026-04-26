@@ -10,22 +10,21 @@
         <!-- Header -->
         <Grid BackgroundColor="#2C1810" Padding="20,20">
             <Label 
-                Text="Cài đặt" 
+                Text="{Binding Settings}" 
                 FontSize="28" 
                 FontAttributes="Bold"
                 TextColor="#D5B8A6"
-                VerticalOptions="Center"
-                HorizontalOptions="Center"/>
+                VerticalOptions="Center"/>
         </Grid>
 
         <!-- Content -->
         <ScrollView Grid.Row="1" Padding="0">
             <VerticalStackLayout Spacing="0" Padding="0">
 
-                <!-- NGÔN NGỮ & GIỌNG ĐỌC Section -->
+                <!-- NGON NGU GIONG DOC Section -->
                 <VerticalStackLayout Padding="20,16,20,12" Spacing="0">
                     <Label 
-                        Text="NGÔN NGỮ &amp; GIỌNG ĐỌC" 
+                        Text="{Binding LanguageSettingsSection}" 
                         FontSize="11" 
                         FontAttributes="Bold"
                         TextColor="#9E8B7E"
@@ -39,13 +38,13 @@
                     </Frame.GestureRecognizers>
                     <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
                         <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8F4FF" Padding="0" HasShadow="False" VerticalOptions="Center">
-                            <Label Text="🌐" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Text="Globe" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Frame>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Ngôn ngữ" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label Text="{Binding LanguageLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
                             <Label x:Name="LanguageLabel" Text="🇻🇳 Tiếng Việt" FontSize="12" TextColor="#9E8B7E"/>
                         </VerticalStackLayout>
-                        <Label Grid.Column="2" Text="›" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
                     </Grid>
                 </Frame>
 
@@ -56,20 +55,20 @@
                     </Frame.GestureRecognizers>
                     <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
                         <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8F9F3" Padding="0" HasShadow="False" VerticalOptions="Center">
-                            <Label Text="🎤" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Text="Voice" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Frame>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Giọng đọc TTS" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label Text="{Binding VoiceTTSLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
                             <Label x:Name="VoiceLabel" Text="Giọng nữ" FontSize="12" TextColor="#9E8B7E"/>
                         </VerticalStackLayout>
-                        <Label Grid.Column="2" Text="›" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
                     </Grid>
                 </Frame>
 
-                <!-- GPS & GEOFENCE Section -->
+                <!-- GPS GEOFENCE Section -->
                 <VerticalStackLayout Padding="20,16,20,12" Spacing="0" Margin="0,8,0,0">
                     <Label 
-                        Text="GPS &amp; GEOFENCE" 
+                        Text="{Binding GpsGeofenceSection}" 
                         FontSize="11" 
                         FontAttributes="Bold"
                         TextColor="#9E8B7E"
@@ -83,13 +82,13 @@
                     </Frame.GestureRecognizers>
                     <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
                         <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#F0E8FF" Padding="0" HasShadow="False" VerticalOptions="Center">
-                            <Label Text="📍" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Text="Location" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Frame>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Bán kính kích hoạt" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label Text="{Binding RadiusActivationLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
                             <Label x:Name="RadiusLabel" Text="15 mét" FontSize="12" TextColor="#9E8B7E"/>
                         </VerticalStackLayout>
-                        <Label Grid.Column="2" Text="›" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
                     </Grid>
                 </Frame>
 
@@ -97,11 +96,11 @@
                 <Frame Padding="0" HasShadow="False" BorderColor="Transparent" BackgroundColor="White" CornerRadius="12" Margin="15,0,15,10">
                     <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
                         <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8FFE8" Padding="0" HasShadow="False" VerticalOptions="Center">
-                            <Label Text="🔋" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Text="Battery" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Frame>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Theo dõi nền" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
-                            <Label Text="Tiết kiệm pin khi chạy nền" FontSize="12" TextColor="#9E8B7E"/>
+                            <Label Text="{Binding BackgroundTrackingLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label Text="{Binding BatterySaveLabel}" FontSize="12" TextColor="#9E8B7E"/>
                         </VerticalStackLayout>
                         <Switch 
                             x:Name="BackgroundTrackingSwitch" 
@@ -112,10 +111,10 @@
                     </Grid>
                 </Frame>
 
-                <!-- NỘI DUNG OFFLINE Section -->
+                <!-- NOI DUNG OFFLINE Section -->
                 <VerticalStackLayout Padding="20,16,20,12" Spacing="0" Margin="0,8,0,0">
                     <Label 
-                        Text="NỘI DUNG OFFLINE" 
+                        Text="{Binding OfflineContentSection}" 
                         FontSize="11" 
                         FontAttributes="Bold"
                         TextColor="#9E8B7E"
@@ -129,13 +128,13 @@
                     </Frame.GestureRecognizers>
                     <Grid Padding="16,14" ColumnSpacing="12" ColumnDefinitions="44,*,Auto">
                         <Frame Grid.Column="0" WidthRequest="44" HeightRequest="44" CornerRadius="10" BackgroundColor="#E8F0FF" Padding="0" HasShadow="False" VerticalOptions="Center">
-                            <Label Text="📥" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Label Text="Download" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center"/>
                         </Frame>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Tải gói offline" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
-                            <Label x:Name="OfflinePackageLabel" Text="Phố Lê Thánh Tôn · 24MB" FontSize="12" TextColor="#9E8B7E"/>
+                            <Label Text="{Binding DownloadOfflineLabel}" FontSize="14" FontAttributes="Bold" TextColor="#2C1810"/>
+                            <Label x:Name="OfflinePackageLabel" Text="{Binding OfflinePackageInfo}" FontSize="12" TextColor="#9E8B7E"/>
                         </VerticalStackLayout>
-                        <Label Grid.Column="2" Text="›" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
+                        <Label Grid.Column="2" Text=">" FontSize="18" TextColor="#C0B5A8" VerticalOptions="Center" Margin="0,0,4,0"/>
                     </Grid>
                 </Frame>
 
