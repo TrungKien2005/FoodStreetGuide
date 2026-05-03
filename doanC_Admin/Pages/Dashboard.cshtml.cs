@@ -123,16 +123,16 @@ namespace doanC_Admin.Pages
             // ✅ SỬA: ScansLastHour - chỉ đếm trong 1 giờ qua
             ScansLastHour = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Now.AddHours(-1));
 
-            // ✅ SỬA: TodayVisitors - chỉ đếm deviceId riêng biệt trong hôm nay
-            TodayVisitors = await _context.QRScanLogs
-                .Where(s => s.ScanTime >= DateTime.Today)
-                .Select(s => s.DeviceId)
+            // ✅ SỬA: TodayVisitors - đếm thiết bị hoạt động trong hôm nay (từ bảng DeviceTracking)
+            TodayVisitors = await _context.DeviceTracking
+                .CountAsync(d => d.LastActivity >= DateTime.Today);
+
+            // ✅ SỬA: ActiveUsersNow - Đếm số Admin DUY NHẤT hoạt động trong 5 phút qua
+            ActiveUsersNow = await _context.AdminSessions
+                .Where(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5))
+                .Select(s => s.AdminId)
                 .Distinct()
                 .CountAsync();
-
-            // ✅ SỬA: ActiveUsersNow - Admin hoạt động trong 5 phút qua
-            ActiveUsersNow = await _context.AdminSessions
-                .CountAsync(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5));
             TotalLoggedIn = await _context.AdminUsers.CountAsync();
 
             // ============================================
@@ -327,21 +327,35 @@ namespace doanC_Admin.Pages
             // ============================================
             // 7. ADMIN ĐANG HOẠT ĐỘNG
             // ============================================
-            ActiveAdminSessions = await _context.AdminSessions
+            // ✅ CÁCH LÀM CHUẨN: Lấy danh sách session hoạt động về bộ nhớ rồi mới GroupBy
+            var activeSessions = await _context.AdminSessions
                 .Where(s => s.IsActive && s.LastActivity >= DateTime.Now.AddMinutes(-5))
-                .Join(_context.AdminUsers, s => s.AdminId, u => u.AdminId, (s, u) => new ActiveAdminSessionDto
-                {
-                    AdminId = s.AdminId,
-                    Username = s.Username,
-                    FullName = u.FullName ?? "",
-                    Role = u.Role ?? "Viewer",
-                    LoginTime = s.LoginTime,
-                    LastActivity = s.LastActivity,
-                    MinutesInactive = (int)(DateTime.Now - s.LastActivity).TotalMinutes,
-                    IPAddress = s.IPAddress ?? "Unknown"
-                })
                 .OrderByDescending(s => s.LastActivity)
                 .ToListAsync();
+
+            var uniqueSessions = activeSessions
+                .GroupBy(s => s.AdminId)
+                .Select(g => g.First())
+                .ToList();
+
+            var adminIds = uniqueSessions.Select(s => s.AdminId).ToList();
+            var admins = await _context.AdminUsers
+                .Where(u => adminIds.Contains(u.AdminId))
+                .ToDictionaryAsync(u => u.AdminId);
+
+            ActiveAdminSessions = uniqueSessions.Select(s => new ActiveAdminSessionDto
+            {
+                AdminId = s.AdminId,
+                Username = s.Username,
+                FullName = admins.ContainsKey(s.AdminId) ? admins[s.AdminId].FullName : "",
+                Role = admins.ContainsKey(s.AdminId) ? admins[s.AdminId].Role : "Viewer",
+                LoginTime = s.LoginTime,
+                LastActivity = s.LastActivity,
+                MinutesInactive = (int)(DateTime.Now - s.LastActivity).TotalMinutes,
+                IPAddress = s.IPAddress ?? "Unknown"
+            })
+            .OrderByDescending(s => s.LastActivity)
+            .ToList();
 
             // ============================================
             // 8. ĐỊA ĐIỂM CHỜ DUYỆT

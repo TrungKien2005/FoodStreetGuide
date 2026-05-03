@@ -52,16 +52,18 @@
             Route="SettingsPage" />
 
         <!-- API Debug - Thêm tab debug -->
+        <!--
          <ShellContent
             Title="API Debug"
             Icon="{StaticResource DebugIcon}"
             ContentTemplate="{DataTemplate views:ApiDebugPage}"
             Route="ApiDebugPage" />
-        <ShellContent
+         <ShellContent
             Title="Test"
             Icon="{StaticResource DebugIcon}"
             ContentTemplate="{DataTemplate views:SimpleTestPage}"
             Route="SimpleTestPage" /> 
+        -->
     </TabBar>
 
     <!-- Chi tiết POI - NGOÀI TabBar -->

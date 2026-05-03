@@ -1103,9 +1103,10 @@
                 }
 
                 const devices = await response.json();
-                const deviceCount = devices ? devices.length : 0;
-
-                console.log(`📱 Found ${deviceCount} active device(s)`);
+                // let deviceCount = devices ? devices.length : 0;
+                // deviceCount = deviceCount + 2;
+                const deviceCount = devices ? devices.filter(d => isRecent(d.lastActivity || d.LastActivity)).length : 0;
+                console.log(`📱 Found ${deviceCount} truly online device(s)`);
 
                 // Cập nhật badge
                 const deviceCountEl = document.getElementById('deviceCount');
@@ -1205,8 +1206,8 @@
             if (!lastActivity) return false;
             const lastTime = new Date(lastActivity);
             const now = new Date();
-            const diffMinutes = (now - lastTime) / 1000 / 60;
-            return diffMinutes < 2;
+            const diffSeconds = (now - lastTime) / 1000;
+            return diffSeconds < 5;
         }
 
         function formatRelativeTime(dateString) {
@@ -1263,7 +1264,8 @@
                     'todayScans': stats.todayScans || 0,
                     'totalListens': stats.totalListens || 0,
                     'todayListens': stats.todayListens || 0,
-                    'activeDevices': stats.activeDevices || 0
+                    'activeDevices': stats.activeDevices || 0,
+                    'todayVisitors': stats.todayVisitors || 0
                 };
 
                 for (const [id, value] of Object.entries(elements)) {
@@ -1370,7 +1372,7 @@
                 if (document.visibilityState === 'visible') {
                     loadActiveDevices();
                 }
-            }, 10000);
+            }, 5000);
         }
 
         // Đảm bảo các element tồn tại

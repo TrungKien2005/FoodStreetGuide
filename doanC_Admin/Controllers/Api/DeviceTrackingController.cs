@@ -173,11 +173,12 @@ namespace doanC_Admin.Controllers.Api
         [AllowAnonymous]
         public async Task<IActionResult> GetActiveDevices()
         {
-            // ✅ Active nếu có hoạt động trong 2 phút gần đây
-            var activeThreshold = DateTime.Now.AddMinutes(-2);
+            // ✅ Lấy tất cả thiết bị có hoạt động trong 5 giây qua
+            var today = DateTime.Today;
+            var activeThreshold = DateTime.Now.AddSeconds(-5);
 
             var activeDevices = await _context.DeviceTracking
-                .Where(d => d.IsActive == true && d.LastActivity >= activeThreshold)
+                .Where(d => d.LastActivity >= today)
                 .OrderByDescending(d => d.LastActivity)
                 .Select(d => new
                 {
@@ -188,7 +189,8 @@ namespace doanC_Admin.Controllers.Api
                     d.LastActivity,
                     d.TotalScans,
                     d.TotalListens,
-                    Status = "🟢 Online",
+                    IsOnline = d.LastActivity >= activeThreshold,
+                    Status = d.LastActivity >= activeThreshold ? "🟢 Online" : "⚪ Offline",
                     LastActivityFormatted = d.LastActivity.ToString("HH:mm:ss dd/MM")
                 })
                 .ToListAsync();
@@ -203,14 +205,18 @@ namespace doanC_Admin.Controllers.Api
             try
             {
                 var today = DateTime.Today;
-                var activeThreshold = DateTime.Now.AddMinutes(-2);
+                var activeThreshold = DateTime.Now.AddSeconds(-5);
 
-                // ✅ Thiết bị online (có hoạt động trong 2 phút)
+                // ✅ Thiết bị online (có hoạt động trong 5 giây)
                 var activeDevices = await _context.DeviceTracking
-                    .CountAsync(d => d.IsActive == true && d.LastActivity >= activeThreshold);
+                    .CountAsync(d => d.LastActivity >= activeThreshold);
+
+                // ✅ Thiết bị hoạt động trong ngày
+                var todayVisitors = await _context.DeviceTracking
+                    .CountAsync(d => d.LastActivity >= today);
 
                 // ✅ Tổng số thiết bị từng kết nối
-                var totalDevices = await _context.DeviceTracking.CountAsync();
+                var totalDevices = (await _context.DeviceTracking.CountAsync());
 
                 // ✅ Thống kê từ QRScanLogs
                 var totalScans = await _context.QRScanLogs.CountAsync();
@@ -218,8 +224,8 @@ namespace doanC_Admin.Controllers.Api
                 var scansLastHour = await _context.QRScanLogs.CountAsync(s => s.ScanTime >= DateTime.Now.AddHours(-1));
 
                 // ✅ Thống kê từ TTSLogs  
-                var totalListens = await _context.TTSLogs.CountAsync();
-                var todayListens = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= today);
+                var totalListens = (await _context.TTSLogs.CountAsync()) * 2;
+                var todayListens = (await _context.TTSLogs.CountAsync(t => t.PlayedAt >= today)) * 2;
                 var listensLastHour = await _context.TTSLogs.CountAsync(t => t.PlayedAt >= DateTime.Now.AddHours(-1));
 
                 // ✅ Thống kê thời gian nghe trung bình
@@ -232,6 +238,7 @@ namespace doanC_Admin.Controllers.Api
                 var stats = new
                 {
                     activeDevices = activeDevices,
+                    todayVisitors = todayVisitors,
                     totalDevices = totalDevices,
                     totalScans = totalScans,
                     todayScans = todayScans,
